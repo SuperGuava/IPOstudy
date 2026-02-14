@@ -81,3 +81,73 @@ paths:
               schema:
                 type: string
                 format: binary
+  /quality/issues:
+    get:
+      summary: List data quality issues
+      parameters:
+        - in: query
+          name: source
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: severity
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: rule_code
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: from
+          required: false
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: to
+          required: false
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: Quality issues list
+  /quality/summary:
+    get:
+      summary: Daily quality summary
+      parameters:
+        - in: query
+          name: source
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: from
+          required: false
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: to
+          required: false
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: Daily quality aggregation
+  /quality/entity/{entity_key}:
+    get:
+      summary: Quality issue history by entity key
+      parameters:
+        - in: path
+          name: entity_key
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Entity quality history
