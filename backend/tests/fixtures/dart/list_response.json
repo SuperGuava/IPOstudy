@@ -1,0 +1,16 @@
+{
+  "status": "000",
+  "message": "정상",
+  "list": [
+    {
+      "corp_code": "00126380",
+      "corp_name": "삼성전자",
+      "rcept_no": "20260214000001",
+      "report_nm": "증권신고서(지분증권)",
+      "rcept_dt": "20260214"
+    }
+  ],
+  "page_no": 1,
+  "page_count": 1,
+  "total_count": 1
+}

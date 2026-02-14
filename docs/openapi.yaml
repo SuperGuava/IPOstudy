@@ -1,0 +1,83 @@
+openapi: 3.1.0
+info:
+  title: Anti-Gravity IPO Fast Fetch API
+  version: 0.1.0
+servers:
+  - url: http://localhost:8000/api/v1
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        "200":
+          description: OK
+  /company/snapshot:
+    get:
+      summary: Company snapshot
+      parameters:
+        - in: query
+          name: corp_code
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Company snapshot response
+  /company/{corp_code}/financials:
+    get:
+      summary: Company financials
+      parameters:
+        - in: path
+          name: corp_code
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Financial statement summary
+  /ipo/pipeline:
+    get:
+      summary: IPO pipeline list
+      responses:
+        "200":
+          description: Pipeline items
+  /ipo/{pipeline_id}:
+    get:
+      summary: IPO pipeline detail
+      parameters:
+        - in: path
+          name: pipeline_id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Pipeline detail
+  /export/ipo.xlsx:
+    get:
+      summary: Export IPO list to xlsx
+      responses:
+        "200":
+          description: XLSX binary
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema:
+                type: string
+                format: binary
+  /export/company/{corp_code}.xlsx:
+    get:
+      summary: Export company snapshot to xlsx
+      parameters:
+        - in: path
+          name: corp_code
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: XLSX binary
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema:
+                type: string
+                format: binary
