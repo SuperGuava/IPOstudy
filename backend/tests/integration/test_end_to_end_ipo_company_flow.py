@@ -19,3 +19,4 @@ def test_end_to_end_ipo_company_flow() -> None:
     snapshot_body = snapshot_response.json()
     assert "profile" in snapshot_body
     assert snapshot_body["corp_code"] == corp_code
+    assert "source_status" in snapshot_body
