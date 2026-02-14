@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+﻿from fastapi import APIRouter
 
 router = APIRouter(prefix="/ipo", tags=["ipo"])
 
@@ -9,8 +9,9 @@ def get_ipo_pipeline() -> dict:
         "items": [
             {
                 "pipeline_id": "alpha-ipo-1",
-                "corp_name": "알파테크",
-                "stage": "공모",
+                "corp_code": "00126380",
+                "corp_name": "alpha-tech",
+                "stage": "offering",
                 "listing_date": "2026-03-15",
             }
         ]
@@ -21,9 +22,10 @@ def get_ipo_pipeline() -> dict:
 def get_ipo_detail(pipeline_id: str) -> dict:
     return {
         "pipeline_id": pipeline_id,
-        "corp_name": "알파테크",
-        "stage": "공모",
+        "corp_code": "00126380",
+        "corp_name": "alpha-tech",
+        "stage": "offering",
         "listing_date": "2026-03-15",
-        "lead_manager": "미래증권",
+        "lead_manager": "future-securities",
         "dart": {"rcept_no": "20260214000001"},
     }
