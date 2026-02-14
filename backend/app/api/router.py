@@ -3,6 +3,7 @@ from fastapi import APIRouter
 from app.api.endpoints.company import router as company_router
 from app.api.endpoints.export import router as export_router
 from app.api.endpoints.ipo import router as ipo_router
+from app.api.endpoints.quality import router as quality_router
 
 api_router = APIRouter()
 
@@ -15,3 +16,4 @@ def health() -> dict[str, str]:
 api_router.include_router(company_router)
 api_router.include_router(ipo_router)
 api_router.include_router(export_router)
+api_router.include_router(quality_router)
