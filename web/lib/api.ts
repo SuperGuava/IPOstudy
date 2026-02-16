@@ -1,34 +1,143 @@
 export type IpoItem = {
   pipeline_id: string;
+  corp_code: string | null;
   corp_name: string;
   stage: string;
-  listing_date: string;
+  listing_date: string | null;
+  lead_manager?: string | null;
+  source_dart_rcept_no?: string | null;
 };
 
-export async function getIpoPipeline(): Promise<IpoItem[]> {
-  return [
-    {
-      pipeline_id: "alpha-ipo-1",
-      corp_name: "알파테크",
-      stage: "공모",
-      listing_date: "2026-03-15",
-    },
-  ];
+export type RefreshMeta = {
+  batch_id: string;
+  published: boolean;
+  issue_count: number;
+  kind_rows: number;
+  dart_rows: number;
+  krx_rows: number;
+  source_status: Record<string, string>;
+};
+
+export type QualityIssue = {
+  id: number;
+  source: string;
+  rule_code: string;
+  severity: string;
+  entity_type: string;
+  entity_key: string;
+  message: string;
+  batch_id: string | null;
+  observed_at: string | null;
+};
+
+export type QualitySummary = {
+  summary_date: string;
+  source: string;
+  pass_count: number;
+  warn_count: number;
+  fail_count: number;
+  fail_rate: number;
+};
+
+type IpoPipelineResponse = {
+  items: IpoItem[];
+  total: number;
+  refresh?: RefreshMeta;
+};
+
+type QualityIssueResponse = {
+  items: QualityIssue[];
+  total: number;
+};
+
+type QualitySummaryResponse = {
+  items: QualitySummary[];
+  total: number;
+};
+
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000/api/v1";
+
+async function getJson<T>(path: string): Promise<T> {
+  const response = await fetch(`${API_BASE}${path}`, { cache: "no-store" });
+  if (!response.ok) {
+    throw new Error(`API error: ${response.status}`);
+  }
+  return (await response.json()) as T;
+}
+
+export async function getIpoPipeline(options?: {
+  refresh?: boolean;
+  corpCode?: string;
+  basDd?: string;
+}): Promise<IpoPipelineResponse> {
+  const query = new URLSearchParams();
+  if (options?.refresh) {
+    query.set("refresh", "true");
+  }
+  if (options?.corpCode) {
+    query.set("corp_code", options.corpCode);
+  }
+  if (options?.basDd) {
+    query.set("bas_dd", options.basDd);
+  }
+  const suffix = query.size > 0 ? `?${query.toString()}` : "";
+  return getJson<IpoPipelineResponse>(`/ipo/pipeline${suffix}`);
 }
 
 export async function getIpoDetail(pipelineId: string): Promise<IpoItem> {
-  return {
-    pipeline_id: pipelineId,
-    corp_name: "알파테크",
-    stage: "공모",
-    listing_date: "2026-03-15",
-  };
+  return getJson<IpoItem>(`/ipo/${pipelineId}`);
 }
 
-export async function getCompany(corpCode: string): Promise<{ corp_code: string; corp_name: string; market_cap: string }> {
-  return {
-    corp_code: corpCode,
-    corp_name: "알파테크",
-    market_cap: "423,849,000,000,000",
-  };
+export async function getCompany(corpCode: string): Promise<{
+  corp_code: string;
+  profile?: { corp_name?: string };
+  market?: { market_cap?: number };
+}> {
+  return getJson(`/company/snapshot?corp_code=${encodeURIComponent(corpCode)}`);
+}
+
+export async function getQualityIssues(options?: {
+  source?: string;
+  severity?: string;
+  ruleCode?: string;
+  fromDate?: string;
+  toDate?: string;
+}): Promise<QualityIssueResponse> {
+  const query = new URLSearchParams();
+  if (options?.source) {
+    query.set("source", options.source);
+  }
+  if (options?.severity) {
+    query.set("severity", options.severity);
+  }
+  if (options?.ruleCode) {
+    query.set("rule_code", options.ruleCode);
+  }
+  if (options?.fromDate) {
+    query.set("from", options.fromDate);
+  }
+  if (options?.toDate) {
+    query.set("to", options.toDate);
+  }
+  const suffix = query.size > 0 ? `?${query.toString()}` : "";
+  return getJson<QualityIssueResponse>(`/quality/issues${suffix}`);
+}
+
+export async function getQualitySummary(options?: {
+  source?: string;
+  fromDate?: string;
+  toDate?: string;
+}): Promise<QualitySummaryResponse> {
+  const query = new URLSearchParams();
+  if (options?.source) {
+    query.set("source", options.source);
+  }
+  if (options?.fromDate) {
+    query.set("from", options.fromDate);
+  }
+  if (options?.toDate) {
+    query.set("to", options.toDate);
+  }
+  const suffix = query.size > 0 ? `?${query.toString()}` : "";
+  return getJson<QualitySummaryResponse>(`/quality/summary${suffix}`);
 }

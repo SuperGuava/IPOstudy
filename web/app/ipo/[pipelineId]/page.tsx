@@ -1,3 +1,4 @@
+import { AppShell } from "@/components/app-shell";
 import { IpoDetail } from "@/components/ipo-detail";
 import { getIpoDetail } from "@/lib/api";
 
@@ -8,5 +9,9 @@ export default async function IpoDetailPage({
 }) {
   const { pipelineId } = await params;
   const item = await getIpoDetail(pipelineId);
-  return <IpoDetail item={item} />;
+  return (
+    <AppShell title="IPO Pipeline" subtitle="Entity detail">
+      <IpoDetail item={item} />
+    </AppShell>
+  );
 }
