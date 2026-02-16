@@ -121,3 +121,47 @@ def get_quality_entity_history(entity_key: str) -> dict:
         for row in rows
     ]
     return {"entity_key": entity_key, "items": items, "total": len(items)}
+
+
+@router.get("/overview")
+def get_quality_overview(
+    source: str | None = None,
+    from_date: str | None = Query(default=None, alias="from"),
+    to_date: str | None = Query(default=None, alias="to"),
+) -> dict:
+    stmt: Select = select(DataQualityIssue)
+    filters = []
+    if source:
+        filters.append(DataQualityIssue.source == source)
+    from_dt = _parse_date(from_date)
+    to_dt = _parse_date(to_date)
+    if from_dt:
+        filters.append(DataQualityIssue.observed_at >= datetime.combine(from_dt, datetime.min.time()))
+    if to_dt:
+        filters.append(DataQualityIssue.observed_at <= datetime.combine(to_dt, datetime.max.time()))
+    if filters:
+        stmt = stmt.where(and_(*filters))
+
+    with SessionLocal() as session:
+        rows = session.execute(stmt).scalars().all()
+
+    severity_counts = {"PASS": 0, "WARN": 0, "FAIL": 0}
+    source_counts: dict[str, int] = {}
+    rule_counts: dict[str, int] = {}
+    for row in rows:
+        severity_counts[row.severity] = severity_counts.get(row.severity, 0) + 1
+        source_counts[row.source] = source_counts.get(row.source, 0) + 1
+        rule_counts[row.rule_code] = rule_counts.get(row.rule_code, 0) + 1
+
+    top_rules = sorted(
+        ({"rule_code": code, "count": count} for code, count in rule_counts.items()),
+        key=lambda item: item["count"],
+        reverse=True,
+    )[:10]
+
+    return {
+        "total_issues": len(rows),
+        "severity_counts": severity_counts,
+        "source_counts": source_counts,
+        "top_rules": top_rules,
+    }

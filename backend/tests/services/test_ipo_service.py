@@ -84,6 +84,10 @@ def test_refresh_pipeline_live_collects_rows_from_multiple_paths(monkeypatch) ->
     assert result["source_status"]["index"] == "ok:3"
     assert result["source_status"]["stock"] == "ok:1"
     assert result["source_status"]["securities"] == "not_configured"
+    assert "source_status_detail" in result
+    index_detail = {item["path"]: item for item in result["source_status_detail"]["index"]}
+    assert index_detail["idx/krx_dd_trd"]["status"] == "ok"
+    assert index_detail["idx/krx_dd_trd"]["rows"] == 2
     assert len(captured_bundle["krx_rows"]) == 3
 
 
@@ -123,7 +127,7 @@ def test_refresh_pipeline_live_retries_transient_access_denied(monkeypatch) -> N
         def fetch_open_api(self, api_path: str, params: dict[str, str]) -> dict:
             self.calls += 1
             if self.calls == 1:
-                raise ipo_service.KrxAuthError("Access Denied")
+                raise ipo_service.KrxAccessDeniedError("Access Denied")
             return {"OutBlock_1": [{"id": "ok"}]}
 
     @dataclass
@@ -141,3 +145,64 @@ def test_refresh_pipeline_live_retries_transient_access_denied(monkeypatch) -> N
 
     result = ipo_service.refresh_pipeline_live(object(), corp_code="00126380", bas_dd="20250131")
     assert result["source_status"]["stock"] == "ok:1"
+    detail = result["source_status_detail"]["stock"][0]
+    assert detail["path"] == "sto/stk_bydd_trd"
+    assert detail["status"] == "ok"
+    assert detail["attempts"] == 2
+
+
+def test_refresh_pipeline_live_does_not_retry_unauthorized_error(monkeypatch) -> None:
+    monkeypatch.setenv("DART_API_KEY", "dart-key")
+    monkeypatch.setenv("KRX_API_KEY", "krx-key")
+    monkeypatch.setenv("KRX_API_STOCK_PATH", "sto/stk_bydd_trd")
+    monkeypatch.delenv("KRX_API_INDEX_PATH", raising=False)
+    monkeypatch.delenv("KRX_API_SECURITIES_PATH", raising=False)
+    monkeypatch.delenv("KRX_API_BOND_PATH", raising=False)
+    monkeypatch.delenv("KRX_API_DERIVATIVE_PATH", raising=False)
+    monkeypatch.delenv("KRX_API_GENERAL_PATH", raising=False)
+    monkeypatch.delenv("KRX_API_ESG_PATH", raising=False)
+
+    class FakeKindConnector:
+        def fetch_public_offering_companies(self) -> list[dict]:
+            return []
+
+    class FakeDartConnector:
+        def __init__(self, api_key: str) -> None:
+            self.api_key = api_key
+
+        def fetch_list(
+            self,
+            corp_code: str,
+            page_no: int,
+            page_count: int,
+            last_reprt_at: str,
+        ) -> list[dict]:
+            return []
+
+    class FakeKrxConnector:
+        def __init__(self, api_key: str | None) -> None:
+            self.api_key = api_key
+            self.calls = 0
+
+        def fetch_open_api(self, api_path: str, params: dict[str, str]) -> dict:
+            self.calls += 1
+            raise ipo_service.KrxAuthError("Unauthorized API Call")
+
+    @dataclass
+    class FakeRunResult:
+        published: bool
+        issues: list
+
+    def fake_run_pipeline(session: object, bundle: dict) -> FakeRunResult:
+        return FakeRunResult(published=True, issues=[])
+
+    monkeypatch.setattr(ipo_service, "KindConnector", FakeKindConnector)
+    monkeypatch.setattr(ipo_service, "DartConnector", FakeDartConnector)
+    monkeypatch.setattr(ipo_service, "KrxConnector", FakeKrxConnector)
+    monkeypatch.setattr(ipo_service, "run_pipeline", fake_run_pipeline)
+
+    result = ipo_service.refresh_pipeline_live(object(), corp_code="00126380", bas_dd="20250131")
+    assert result["source_status"]["stock"] == "auth_error"
+    detail = result["source_status_detail"]["stock"][0]
+    assert detail["status"] == "auth_error"
+    assert detail["attempts"] == 1

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import os
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 
 from sqlalchemy import func, select
@@ -8,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.connectors.dart_connector import DartConnector
 from app.connectors.kind_connector import KindConnector
-from app.connectors.krx_connector import KrxAuthError, KrxConnector
+from app.connectors.krx_connector import KrxAccessDeniedError, KrxAuthError, KrxConnector, KrxRequestError
 from app.etl.pipeline import run_pipeline
 from app.models.ipo import IpoPipelineItem
 
@@ -50,20 +52,58 @@ def _fetch_krx_with_retry(
     api_path: str,
     bas_dd: str,
     max_attempts: int = 3,
-) -> dict:
+    initial_backoff: float = 0.2,
+) -> tuple[dict, int]:
+    backoff = initial_backoff
     last_auth_error: KrxAuthError | None = None
+    last_request_error: KrxRequestError | None = None
     for attempt in range(1, max_attempts + 1):
         try:
-            return connector.fetch_open_api(api_path, {"basDd": bas_dd})
+            return connector.fetch_open_api(api_path, {"basDd": bas_dd}), attempt
+        except KrxAccessDeniedError as exc:
+            last_auth_error = exc
+            if attempt < max_attempts:
+                time.sleep(backoff)
+                backoff = min(backoff * 2, 1.0)
+                continue
+            raise
         except KrxAuthError as exc:
             last_auth_error = exc
-            # KRX may intermittently return WAF "Access Denied"; retry a few times.
-            if "access denied" in str(exc).lower() and attempt < max_attempts:
+            raise
+        except KrxRequestError as exc:
+            last_request_error = exc
+            if attempt < max_attempts:
+                time.sleep(backoff)
+                backoff = min(backoff * 2, 1.0)
                 continue
             raise
     if last_auth_error is not None:
         raise last_auth_error
+    if last_request_error is not None:
+        raise last_request_error
     raise RuntimeError("unexpected krx fetch retry state")
+
+
+def _collect_krx_path_result(*, krx_api_key: str, api_path: str, bas_dd: str) -> dict:
+    connector = KrxConnector(api_key=krx_api_key)
+    try:
+        payload, attempts = _fetch_krx_with_retry(connector, api_path, bas_dd)
+        out_block = payload.get("OutBlock_1")
+        if not isinstance(out_block, list):
+            return {"path": api_path, "status": "schema_mismatch", "rows": 0, "attempts": attempts}
+        return {
+            "path": api_path,
+            "status": "ok",
+            "rows": len(out_block),
+            "attempts": attempts,
+            "payload": payload,
+        }
+    except KrxAccessDeniedError as exc:
+        return {"path": api_path, "status": "access_denied", "rows": 0, "attempts": 3, "error": str(exc)}
+    except KrxAuthError as exc:
+        return {"path": api_path, "status": "auth_error", "rows": 0, "attempts": 1, "error": str(exc)}
+    except Exception as exc:  # pragma: no cover - runtime diagnostics
+        return {"path": api_path, "status": "error", "rows": 0, "attempts": 1, "error": f"{type(exc).__name__}: {exc}"}
 
 
 def _to_item_payload(item: IpoPipelineItem) -> dict:
@@ -125,7 +165,6 @@ def refresh_pipeline_live(session: Session, *, corp_code: str, bas_dd: str) -> d
 
     kind_connector = KindConnector()
     dart_connector = DartConnector(api_key=dart_api_key or "")
-    krx_connector = KrxConnector(api_key=krx_api_key)
 
     kind_rows: list[dict] = []
     dart_rows: list[dict] = []
@@ -134,6 +173,7 @@ def refresh_pipeline_live(session: Session, *, corp_code: str, bas_dd: str) -> d
     kind_error: str | None = None
     dart_error: str | None = None
     krx_status: dict[str, str] = {}
+    krx_status_detail: dict[str, list[dict]] = {}
 
     try:
         kind_rows = kind_connector.fetch_public_offering_companies()
@@ -153,6 +193,7 @@ def refresh_pipeline_live(session: Session, *, corp_code: str, bas_dd: str) -> d
         krx_status["dart"] = "missing_key"
 
     for category, api_paths in resolve_krx_openapi_paths().items():
+        krx_status_detail[category] = []
         if not api_paths:
             krx_status[category] = "not_configured"
             continue
@@ -161,35 +202,57 @@ def refresh_pipeline_live(session: Session, *, corp_code: str, bas_dd: str) -> d
             continue
         rows_count = 0
         auth_count = 0
+        denied_count = 0
         schema_count = 0
         error_count = 0
-        for api_path in api_paths:
-            try:
-                payload = _fetch_krx_with_retry(krx_connector, api_path, bas_dd)
-                out_block = payload.get("OutBlock_1")
-                if not isinstance(out_block, list):
-                    schema_count += 1
-                    continue
-                rows_count += len(out_block)
+        max_workers = min(8, max(1, len(api_paths)))
+        path_results: list[dict] = []
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = [
+                executor.submit(_collect_krx_path_result, krx_api_key=krx_api_key, api_path=api_path, bas_dd=bas_dd)
+                for api_path in api_paths
+            ]
+            for future in as_completed(futures):
+                path_results.append(future.result())
+
+        for result in sorted(path_results, key=lambda item: item["path"]):
+            status = result["status"]
+            if status == "ok":
+                rows_count += int(result["rows"])
                 krx_rows.append(
                     {
-                        "dataset_key": f"openapi.{category}.{api_path.replace('/', '.')}",
+                        "dataset_key": f"openapi.{category}.{result['path'].replace('/', '.')}",
                         "required_params": {"basDd": "required"},
                         "request_params": {"basDd": bas_dd},
-                        "response": payload,
+                        "response": result["payload"],
                     }
                 )
-            except KrxAuthError:
+            elif status == "auth_error":
                 auth_count += 1
-            except Exception:  # pragma: no cover - runtime diagnostics
+            elif status == "access_denied":
+                denied_count += 1
+            elif status == "schema_mismatch":
+                schema_count += 1
+            else:
                 error_count += 1
+            detail_entry = {
+                "path": result["path"],
+                "status": status,
+                "rows": result["rows"],
+                "attempts": result["attempts"],
+            }
+            if "error" in result:
+                detail_entry["error"] = result["error"]
+            krx_status_detail[category].append(detail_entry)
 
-        if rows_count > 0 and auth_count == 0 and schema_count == 0 and error_count == 0:
+        if rows_count > 0 and auth_count == 0 and denied_count == 0 and schema_count == 0 and error_count == 0:
             krx_status[category] = f"ok:{rows_count}"
         elif rows_count > 0:
             krx_status[category] = (
-                f"partial:ok={rows_count},auth={auth_count},schema={schema_count},error={error_count}"
+                f"partial:ok={rows_count},auth={auth_count},denied={denied_count},schema={schema_count},error={error_count}"
             )
+        elif denied_count > 0:
+            krx_status[category] = "access_denied"
         elif auth_count > 0:
             krx_status[category] = "auth_error"
         elif schema_count > 0:
@@ -217,4 +280,5 @@ def refresh_pipeline_live(session: Session, *, corp_code: str, bas_dd: str) -> d
         "kind_error": kind_error,
         "dart_error": dart_error,
         "source_status": krx_status,
+        "source_status_detail": krx_status_detail,
     }

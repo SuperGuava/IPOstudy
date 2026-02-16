@@ -39,6 +39,13 @@ export type QualitySummary = {
   fail_rate: number;
 };
 
+export type QualityOverview = {
+  total_issues: number;
+  severity_counts: Record<string, number>;
+  source_counts: Record<string, number>;
+  top_rules: Array<{ rule_code: string; count: number }>;
+};
+
 type IpoPipelineResponse = {
   items: IpoItem[];
   total: number;
@@ -54,6 +61,8 @@ type QualitySummaryResponse = {
   items: QualitySummary[];
   total: number;
 };
+
+type QualityOverviewResponse = QualityOverview;
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000/api/v1";
 
@@ -140,4 +149,23 @@ export async function getQualitySummary(options?: {
   }
   const suffix = query.size > 0 ? `?${query.toString()}` : "";
   return getJson<QualitySummaryResponse>(`/quality/summary${suffix}`);
+}
+
+export async function getQualityOverview(options?: {
+  source?: string;
+  fromDate?: string;
+  toDate?: string;
+}): Promise<QualityOverviewResponse> {
+  const query = new URLSearchParams();
+  if (options?.source) {
+    query.set("source", options.source);
+  }
+  if (options?.fromDate) {
+    query.set("from", options.fromDate);
+  }
+  if (options?.toDate) {
+    query.set("to", options.toDate);
+  }
+  const suffix = query.size > 0 ? `?${query.toString()}` : "";
+  return getJson<QualityOverviewResponse>(`/quality/overview${suffix}`);
 }

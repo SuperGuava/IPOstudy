@@ -1,10 +1,10 @@
-# Session Handoff
+﻿# Session Handoff
 
 Updated: 2026-02-16
 
 ## Goal
 
-다른 세션/다른 작업자도 즉시 같은 상태에서 개발을 이어갈 수 있도록 실행 순서, 검증 기준, 현재 리스크를 고정한다.
+Allow any new session to resume development without prior chat context.
 
 ## Environment Bootstrap
 
@@ -30,7 +30,8 @@ Updated: 2026-02-16
 3. `GET /api/v1/ipo/pipeline?refresh=true&corp_code=00126380&bas_dd=20250131`
 4. `GET /api/v1/quality/issues`
 5. `GET /api/v1/quality/summary`
-6. `cd backend && python scripts/krx_openapi_probe.py`
+6. `GET /api/v1/quality/overview`
+7. `cd backend && python scripts/krx_openapi_probe.py`
 
 ## KRX Current Status
 
@@ -42,6 +43,7 @@ Updated: 2026-02-16
   - `esg/esg_index_info`
   - `esg/esg_etp_info`
 - `esg/sri_bond_info` is active.
+- `refresh=true` response includes `source_status_detail` for category/path-level diagnostics.
 
 ## Stability Notes
 
@@ -50,7 +52,7 @@ Updated: 2026-02-16
   - do not run build and Playwright in parallel during triage.
 - KRX:
   - intermittent `403 Access Denied` can occur.
-  - backend refresh path includes retry for transient `Access Denied`.
+  - backend refresh path retries transient `Access Denied` responses.
 
 ## Where To Read First
 
@@ -62,8 +64,8 @@ Updated: 2026-02-16
 
 ## Recommended Next Task
 
-1. ESG portal approval completion check
-2. `krx_openapi_probe.py` + refresh API re-verify
+1. Confirm ESG approval for `esg/esg_index_info` and `esg/esg_etp_info`.
+2. Re-run `krx_openapi_probe.py` and refresh API 5 times.
 3. If ESG becomes all-OK, update:
    - `docs/operations/runbook.md`
    - `docs/operations/history.md`

@@ -1,6 +1,6 @@
 # Execution History and Major Notes
 
-Updated: 2026-02-16 23:05 (+09:00)
+Updated: 2026-02-17 08:20 (+09:00)
 
 ## 1) Repository / Integration History
 
@@ -442,3 +442,63 @@ Intent:
 
 1. New session can resume development without prior chat context.
 2. Reduce accidental commit noise from local build artifacts.
+
+## 21) Sprint 1 Completion - ESG/KRX Verification Hardening (2026-02-17)
+
+Applied:
+
+1. Upgraded `backend/scripts/krx_openapi_probe.py` with:
+   - `--repeat`
+   - `--bas-dd`
+   - `--strict-categories`
+2. Added probe helper tests:
+   - strict category parser
+   - category success predicate
+3. Added refresh path-level diagnostics:
+   - `source_status_detail` in `/api/v1/ipo/pipeline?refresh=true...`
+   - fields: `path`, `status`, `rows`, `attempts`, optional `error`
+
+Verification:
+
+1. `cd backend && python scripts/krx_openapi_probe.py --repeat 5 --bas-dd 20250131 --strict-categories stock,esg`
+2. Refresh API repeated 5 times:
+   - all runs `status=200`, `published=True`
+   - ESG remained partial (`ok + auth_pending`) as expected.
+
+## 22) Sprint 2 Completion - Data Quality Rule Expansion (2026-02-17)
+
+Applied:
+
+1. Expanded KRX quality rules in `backend/app/quality/rules/krx.py`:
+   - `KRX_BAS_DD_MISMATCH` (WARN)
+   - `KRX_DUPLICATE_ISU_CD` (WARN)
+   - `KRX_NUMERIC_FIELD_INVALID` (WARN)
+2. Added aggregate endpoint:
+   - `GET /api/v1/quality/overview`
+3. Upgraded quality UI:
+   - source breakdown panel
+   - top rule codes panel
+
+Verification:
+
+1. `python -m pytest tests/quality/test_krx_rules.py -q` -> pass
+2. `python -m pytest tests/api/test_quality_api.py -q` -> pass
+
+## 23) Sprint 3 Completion - Collection Stability and Performance (2026-02-17)
+
+Applied:
+
+1. Added connector-level auth taxonomy:
+   - `KrxAccessDeniedError` (403 Access Denied)
+   - `KrxAuthError` for auth/approval errors
+2. Retry policy upgrade in `ipo_service`:
+   - retry only `KrxAccessDeniedError` and request errors
+   - no retry for `Unauthorized API Call`
+3. Parallelized KRX path fetch in refresh flow:
+   - ThreadPool-based concurrent path collection
+
+Verification:
+
+1. `python -m pytest -q` -> `65 passed`
+2. `cd web && npx playwright test` -> `2 passed`
+3. `cd web && npm run build:stable` -> success

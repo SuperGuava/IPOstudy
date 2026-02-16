@@ -1,6 +1,6 @@
 import { AppShell } from "@/components/app-shell";
 import { Card } from "@/components/ui/card";
-import { getQualityIssues, getQualitySummary } from "@/lib/api";
+import { getQualityIssues, getQualityOverview, getQualitySummary } from "@/lib/api";
 
 function textParam(value: string | string[] | undefined): string {
   return typeof value === "string" ? value : "";
@@ -17,7 +17,7 @@ export default async function QualityPage({
   const fromDate = textParam(params.from);
   const toDate = textParam(params.to);
 
-  const [issueData, summaryData] = await Promise.all([
+  const [issueData, summaryData, overview] = await Promise.all([
     getQualityIssues({
       source: source || undefined,
       severity: severity || undefined,
@@ -29,6 +29,11 @@ export default async function QualityPage({
       fromDate: fromDate || undefined,
       toDate: toDate || undefined,
     }).catch(() => ({ items: [], total: 0 })),
+    getQualityOverview({
+      source: source || undefined,
+      fromDate: fromDate || undefined,
+      toDate: toDate || undefined,
+    }).catch(() => ({ total_issues: 0, severity_counts: {}, source_counts: {}, top_rules: [] })),
   ]);
 
   const latest = summaryData.items[0];
@@ -91,7 +96,7 @@ export default async function QualityPage({
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <div className="text-[11px] uppercase tracking-wide text-ag-mute">Issue Total</div>
-          <div className="mt-2 text-2xl font-semibold">{issueData.total}</div>
+          <div className="mt-2 text-2xl font-semibold">{overview.total_issues || issueData.total}</div>
         </Card>
         <Card>
           <div className="text-[11px] uppercase tracking-wide text-ag-mute">Latest Fail Count</div>
@@ -146,6 +151,39 @@ export default async function QualityPage({
               </li>
             ))}
             {summaryData.items.length === 0 ? <li className="text-xs text-ag-mute">No summary rows yet.</li> : null}
+          </ul>
+        </Card>
+      </div>
+
+      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+        <Card>
+          <div className="mb-2 text-[11px] uppercase tracking-wide text-ag-mute">Source Breakdown</div>
+          <ul className="space-y-2 text-xs">
+            {Object.entries(overview.source_counts).map(([key, value]) => (
+              <li key={key} className="flex items-center justify-between rounded border border-ag-line bg-ag-panel/70 px-2 py-1.5">
+                <span>{key}</span>
+                <span className="font-mono text-ag-mute">{value}</span>
+              </li>
+            ))}
+            {Object.keys(overview.source_counts).length === 0 ? (
+              <li className="text-ag-mute">No source aggregates yet.</li>
+            ) : null}
+          </ul>
+        </Card>
+
+        <Card>
+          <div className="mb-2 text-[11px] uppercase tracking-wide text-ag-mute">Top Rule Codes</div>
+          <ul className="space-y-2 text-xs">
+            {overview.top_rules.slice(0, 8).map((row) => (
+              <li
+                key={row.rule_code}
+                className="flex items-center justify-between rounded border border-ag-line bg-ag-panel/70 px-2 py-1.5"
+              >
+                <span>{row.rule_code}</span>
+                <span className="font-mono text-ag-mute">{row.count}</span>
+              </li>
+            ))}
+            {overview.top_rules.length === 0 ? <li className="text-ag-mute">No rule aggregates yet.</li> : null}
           </ul>
         </Card>
       </div>

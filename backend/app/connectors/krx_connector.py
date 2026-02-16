@@ -8,6 +8,10 @@ class KrxAuthError(RuntimeError):
     pass
 
 
+class KrxAccessDeniedError(KrxAuthError):
+    pass
+
+
 class KrxRequestError(RuntimeError):
     pass
 
@@ -54,6 +58,8 @@ class KrxConnector:
             return self.http_client.get_json(url, params, headers=headers)
         except HTTPError as exc:
             message = self._extract_error_message(exc)
+            if exc.code == 403 and "access denied" in message.lower():
+                raise KrxAccessDeniedError(message) from exc
             if exc.code in {401, 403}:
                 raise KrxAuthError(message) from exc
             raise KrxRequestError(message) from exc

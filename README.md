@@ -42,6 +42,7 @@ Modular monolith for Korean IPO and company snapshot data using DART, KIND, and 
 - `GET /api/v1/export/company/{corp_code}.xlsx`
 - `GET /api/v1/quality/issues`
 - `GET /api/v1/quality/summary`
+- `GET /api/v1/quality/overview`
 - `GET /api/v1/quality/entity/{entity_key}`
 
 ## Product UI Scope
@@ -71,6 +72,8 @@ Modular monolith for Korean IPO and company snapshot data using DART, KIND, and 
 ## KRX Open API Check
 
 - `cd backend && python scripts/krx_openapi_probe.py`
+- Repeat strict check example:
+  - `cd backend && python scripts/krx_openapi_probe.py --repeat 5 --bas-dd 20250131 --strict-categories stock,esg`
 - If output is `AUTH ERROR`, complete API key issuance and API usage approval on KRX Open API portal.
 
 ## KRX Category Expansion

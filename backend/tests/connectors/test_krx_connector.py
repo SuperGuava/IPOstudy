@@ -7,7 +7,7 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
-from app.connectors.krx_connector import KrxAuthError, KrxConnector
+from app.connectors.krx_connector import KrxAccessDeniedError, KrxAuthError, KrxConnector
 from app.db.base import Base
 from app.models.snapshot import DatasetRegistry
 from app.services.dataset_registry_service import DatasetRegistryService
@@ -53,6 +53,12 @@ class UnauthorizedOpenApiClient:
     def get_json(self, url: str, params: dict, headers: dict[str, str] | None = None) -> dict:
         body = io.BytesIO(b'{"respMsg":"Unauthorized Key","respCode":"401"}')
         raise HTTPError(url=url, code=401, msg="Unauthorized", hdrs=None, fp=body)
+
+
+class AccessDeniedOpenApiClient:
+    def get_json(self, url: str, params: dict, headers: dict[str, str] | None = None) -> dict:
+        body = io.BytesIO(b"<html><title>Access Denied</title><h1>Access Denied</h1></html>")
+        raise HTTPError(url=url, code=403, msg="Forbidden", hdrs=None, fp=body)
 
 
 @pytest.fixture()
@@ -128,4 +134,11 @@ def test_krx_open_api_unauthorized_maps_to_auth_error() -> None:
     connector = KrxConnector(http_client=UnauthorizedOpenApiClient(), api_key="bad-key")
 
     with pytest.raises(KrxAuthError, match="Unauthorized Key"):
+        connector.fetch_open_api("sto/stk_isu_base_info", {"basDd": "20250131"})
+
+
+def test_krx_open_api_access_denied_maps_to_access_denied_error() -> None:
+    connector = KrxConnector(http_client=AccessDeniedOpenApiClient(), api_key="bad-key")
+
+    with pytest.raises(KrxAccessDeniedError, match="Access Denied"):
         connector.fetch_open_api("sto/stk_isu_base_info", {"basDd": "20250131"})

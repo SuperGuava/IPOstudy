@@ -12,7 +12,7 @@ Anti-Gravity는 MVP를 넘어 제품형 운영 단계까지 올라왔고, 핵심
 - 백엔드
   - FastAPI + SQLAlchemy + Alembic
   - DB 기반 IPO pipeline API
-  - quality API (`/quality/issues`, `/quality/summary`, `/quality/entity/{entity_key}`)
+  - quality API (`/quality/issues`, `/quality/summary`, `/quality/overview`, `/quality/entity/{entity_key}`)
   - export API (`/export/ipo.xlsx`, `/export/company/{corp_code}.xlsx`)
 - 데이터 파이프라인
   - DART + KIND + KRX OpenAPI 수집
@@ -46,6 +46,7 @@ Anti-Gravity는 MVP를 넘어 제품형 운영 단계까지 올라왔고, 핵심
 
 - KRX 간헐 `403 Access Denied` 대응 재시도 로직 적용
   - 파일: `backend/app/services/ipo_service.py`
+- refresh 응답에 `source_status_detail`(카테고리/경로별 status, rows, attempts) 추가
 
 ## 4) 새 세션 즉시 시작 명령
 
@@ -63,7 +64,7 @@ Anti-Gravity는 MVP를 넘어 제품형 운영 단계까지 올라왔고, 핵심
    - `npm run dev -- --port 3000`
 4. KRX 상태 확인
    - `cd backend`
-   - `python scripts/krx_openapi_probe.py`
+   - `python scripts/krx_openapi_probe.py --repeat 5 --bas-dd 20250131 --strict-categories stock,esg`
 5. 실수집 smoke
    - `GET /api/v1/ipo/pipeline?refresh=true&corp_code=00126380&bas_dd=20250131`
 
@@ -81,8 +82,8 @@ Anti-Gravity는 MVP를 넘어 제품형 운영 단계까지 올라왔고, 핵심
    - `esg/esg_index_info`
    - `esg/esg_etp_info`
 2. 승인 직후 검증
-   - `python scripts/krx_openapi_probe.py`
-   - refresh API 3회 반복 호출
+   - `python scripts/krx_openapi_probe.py --repeat 5 --bas-dd 20250131 --strict-categories stock,esg`
+   - refresh API 5회 반복 호출
 3. ESG status가 `partial` -> `ok:*`로 바뀌는지 확인 후 history 기록
 
 ## 7) Git 운영 원칙 (이어개발용)

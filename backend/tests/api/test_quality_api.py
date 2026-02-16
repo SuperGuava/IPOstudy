@@ -27,3 +27,13 @@ def test_quality_entity_api_returns_history() -> None:
     body = response.json()
     assert body["entity_key"] == "00126380"
     assert "items" in body
+
+
+def test_quality_overview_api_returns_aggregates() -> None:
+    client = TestClient(app)
+    response = client.get("/api/v1/quality/overview")
+    assert response.status_code == 200
+    body = response.json()
+    assert "total_issues" in body
+    assert "severity_counts" in body
+    assert "source_counts" in body

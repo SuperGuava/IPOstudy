@@ -51,6 +51,7 @@ Recommended validated paths (verified on 2026-02-16):
   - `GET /api/v1/ipo/pipeline?refresh=true&corp_code=00126380`
   - `GET /api/v1/company/snapshot?corp_code=00126380`
   - `GET /api/v1/quality/summary`
+  - `GET /api/v1/quality/overview`
   - `GET /api/v1/quality/issues`
 
 ## Data Quality Operations
@@ -92,12 +93,17 @@ Recommended validated paths (verified on 2026-02-16):
   - `cd backend`
   - `python scripts/krx_openapi_probe.py`
   - probe reads all configured KRX category paths from root `.env`.
-  - success criterion: `category=stock` is `OK`, optional categories can be `SKIP`.
+  - success criterion: strict category has at least one `OK` path.
+
+- Repeat probe for stability:
+  - `python scripts/krx_openapi_probe.py --repeat 5 --bas-dd 20250131 --strict-categories stock,esg`
+  - Use `--strict-categories` to control pass/fail gate categories.
 
 - Current validated baseline (2026-02-16):
   - `index`, `stock`, `securities`, `bond`, `derivative`, `general`: `OK`
   - `esg`: `partial` (`esg/sri_bond_info` OK, `esg/esg_index_info` and `esg/esg_etp_info` require usage approval)
   - runtime refresh path includes transient retry for intermittent KRX `403 Access Denied`.
+  - refresh response includes `source_status_detail` (path-level status/rows/attempts/error).
 
 ## One-shot ETL Execution
 

@@ -72,3 +72,24 @@ def test_probe_splits_comma_separated_paths() -> None:
     }
     paths = krx_openapi_probe.resolve_probe_paths(env)
     assert paths["index"] == ["idx/krx_dd_trd", "idx/kospi_dd_trd", "idx/kosdaq_dd_trd"]
+
+
+def test_probe_parse_strict_categories() -> None:
+    assert krx_openapi_probe.parse_strict_categories("stock, esg ,bond") == ["stock", "esg", "bond"]
+    assert krx_openapi_probe.parse_strict_categories("  ") == []
+
+
+def test_probe_category_success_when_any_path_is_ok() -> None:
+    details = [
+        {"path": "a", "status": "auth_error"},
+        {"path": "b", "status": "ok"},
+    ]
+    assert krx_openapi_probe.category_has_success(details) is True
+
+
+def test_probe_category_success_false_when_all_failed() -> None:
+    details = [
+        {"path": "a", "status": "auth_error"},
+        {"path": "b", "status": "error"},
+    ]
+    assert krx_openapi_probe.category_has_success(details) is False
