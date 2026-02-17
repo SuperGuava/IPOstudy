@@ -28,11 +28,13 @@ Allow any new session to resume development without prior chat context.
 1. `GET /api/v1/health` -> `{"status":"ok"}`
 2. `GET /api/v1/ipo/pipeline`
 3. `GET /api/v1/ipo/pipeline?refresh=true&corp_code=00126380&bas_dd=20250131`
-4. `GET /api/v1/quality/issues`
-5. `GET /api/v1/quality/summary`
-6. `GET /api/v1/quality/overview`
-7. `GET /api/v1/quality/rules`
-8. `cd backend && python scripts/krx_openapi_probe.py`
+4. `GET /api/v1/insights/companies?limit=20`
+5. `GET /api/v1/insights/templates`
+6. `GET /api/v1/quality/issues`
+7. `GET /api/v1/quality/summary`
+8. `GET /api/v1/quality/overview`
+9. `GET /api/v1/quality/rules`
+10. `cd backend && python scripts/krx_openapi_probe.py`
 
 ## KRX Current Status
 

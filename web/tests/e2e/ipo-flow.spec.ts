@@ -28,3 +28,10 @@ test("dashboard and quality render live metric panels", async ({ page }) => {
   await expect(filterForm.locator("input[name='to']")).toBeVisible();
   await expect(page.getByRole("button", { name: "Apply Filters" })).toBeVisible();
 });
+
+test("company explorer renders beginner-friendly analysis surface", async ({ page }) => {
+  await page.goto("/explorer");
+  await expect(page.getByRole("heading", { name: "Company Explorer" })).toBeVisible();
+  await expect(page.getByText("Beginner Summary", { exact: true })).toBeVisible();
+  await expect(page.getByText("Analysis Templates", { exact: true })).toBeVisible();
+});

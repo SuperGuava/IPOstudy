@@ -1,6 +1,6 @@
 # Execution History and Major Notes
 
-Updated: 2026-02-17 10:05 (+09:00)
+Updated: 2026-02-17 11:10 (+09:00)
 
 ## 1) Repository / Integration History
 
@@ -558,3 +558,29 @@ Verification:
 1. `cd backend && python -m pytest -q tests/api/test_quality_api.py` -> pass
 2. `cd backend && python -m pytest -q` -> pass
 3. `cd web && npm run build:stable` -> pass
+
+## 26) Company Explorer Foundation (Beyond IPO, 2026-02-17)
+
+Applied:
+
+1. Added insights API surface:
+   - `GET /api/v1/insights/companies` (search/list)
+   - `GET /api/v1/insights/company` (beginner summary + quality snapshot)
+   - `GET /api/v1/insights/templates` (analysis templates)
+2. Added backend composition service:
+   - `backend/app/services/insight_service.py`
+   - company risk label (`low|medium|high`) from quality severity counts
+3. Added web explorer UX:
+   - `web/app/explorer/page.tsx`
+   - beginner summary, quick insights, quality snapshot, analysis templates
+   - left-side search/list + right-side detail pattern
+4. Added navigation and e2e coverage:
+   - `web/components/app-shell.tsx`
+   - `web/tests/e2e/ipo-flow.spec.ts`
+5. Updated operations docs (`README.md`, runbook, handoff, guide).
+
+Verification:
+
+1. `cd backend && python -m pytest -q` -> pass
+2. `cd web && npm run build:stable` -> pass
+3. `cd web && npx playwright test` -> pass

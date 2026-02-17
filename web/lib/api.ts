@@ -55,6 +55,42 @@ export type QualityRuleMeta = {
   operator_action: string;
 };
 
+export type InsightCompanyItem = {
+  company_key: string;
+  corp_code: string | null;
+  corp_name: string;
+  stage: string;
+  listing_date: string | null;
+  lead_manager: string | null;
+  quality: Record<string, number>;
+  risk_label: "low" | "medium" | "high";
+};
+
+export type InsightCompanyDetail = {
+  company_key: string;
+  corp_code: string | null;
+  corp_name: string;
+  ipo: {
+    pipeline_id: string;
+    stage: string;
+    listing_date: string | null;
+    lead_manager: string | null;
+  };
+  quality: {
+    severity: Record<string, number>;
+    source: Record<string, number>;
+  };
+  beginner_summary: string;
+  quick_insights: string[];
+};
+
+export type InsightTemplate = {
+  template_id: string;
+  title: string;
+  description: string;
+  steps: string[];
+};
+
 type IpoPipelineResponse = {
   items: IpoItem[];
   total: number;
@@ -75,6 +111,16 @@ type QualityOverviewResponse = QualityOverview;
 
 type QualityRuleCatalogResponse = {
   items: QualityRuleMeta[];
+  total: number;
+};
+
+type InsightCompanyResponse = {
+  items: InsightCompanyItem[];
+  total: number;
+};
+
+type InsightTemplateResponse = {
+  items: InsightTemplate[];
   total: number;
 };
 
@@ -197,4 +243,27 @@ export async function getQualityRules(options?: {
   }
   const suffix = query.size > 0 ? `?${query.toString()}` : "";
   return getJson<QualityRuleCatalogResponse>(`/quality/rules${suffix}`);
+}
+
+export async function getInsightCompanies(options?: {
+  query?: string;
+  limit?: number;
+}): Promise<InsightCompanyResponse> {
+  const query = new URLSearchParams();
+  if (options?.query) {
+    query.set("query", options.query);
+  }
+  if (options?.limit) {
+    query.set("limit", String(options.limit));
+  }
+  const suffix = query.size > 0 ? `?${query.toString()}` : "";
+  return getJson<InsightCompanyResponse>(`/insights/companies${suffix}`);
+}
+
+export async function getInsightCompany(companyKey: string): Promise<InsightCompanyDetail> {
+  return getJson<InsightCompanyDetail>(`/insights/company?company_key=${encodeURIComponent(companyKey)}`);
+}
+
+export async function getInsightTemplates(): Promise<InsightTemplateResponse> {
+  return getJson<InsightTemplateResponse>("/insights/templates");
 }

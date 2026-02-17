@@ -64,6 +64,9 @@ Recommended validated paths (verified on 2026-02-16):
 - Core API smoke:
   - `GET /api/v1/ipo/pipeline`
   - `GET /api/v1/ipo/pipeline?refresh=true&corp_code=00126380`
+  - `GET /api/v1/insights/companies?limit=20`
+  - `GET /api/v1/insights/company?company_key=00126380`
+  - `GET /api/v1/insights/templates`
   - `GET /api/v1/company/snapshot?corp_code=00126380`
   - `GET /api/v1/quality/summary`
   - `GET /api/v1/quality/overview`
