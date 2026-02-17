@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import argparse
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 import sys
 
@@ -45,6 +45,12 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def resolve_dart_window(bas_dd: str, lookback_days: int = 365) -> tuple[str, str]:
+    target_date = datetime.strptime(bas_dd, "%Y%m%d")
+    begin_date = target_date - timedelta(days=lookback_days)
+    return begin_date.strftime("%Y%m%d"), target_date.strftime("%Y%m%d")
+
+
 def main() -> int:
     args = build_parser().parse_args()
     env = load_env_from_repo_root()
@@ -80,7 +86,14 @@ def main() -> int:
         kind_error = f"{type(exc).__name__}: {exc}"
 
     try:
-        dart_rows = dart_connector.fetch_list(args.corp_code, page_no=1, page_count=20, last_reprt_at="Y")
+        dart_bgn_de, dart_end_de = resolve_dart_window(args.bas_dd)
+        dart_rows = dart_connector.fetch_list(
+            args.corp_code,
+            page_no=1,
+            page_count=20,
+            bgn_de=dart_bgn_de,
+            end_de=dart_end_de,
+        )
     except Exception as exc:  # pragma: no cover - runtime diagnostics
         dart_error = f"{type(exc).__name__}: {exc}"
 

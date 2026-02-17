@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -118,6 +118,12 @@ def _to_item_payload(item: IpoPipelineItem) -> dict:
     }
 
 
+def _resolve_dart_window(bas_dd: str, lookback_days: int = 365) -> tuple[str, str]:
+    target_date = datetime.strptime(bas_dd, "%Y%m%d")
+    begin_date = target_date - timedelta(days=lookback_days)
+    return begin_date.strftime("%Y%m%d"), target_date.strftime("%Y%m%d")
+
+
 def list_pipeline_items(session: Session) -> list[dict]:
     rows = session.execute(select(IpoPipelineItem).order_by(IpoPipelineItem.pipeline_id.asc())).scalars().all()
     return [_to_item_payload(row) for row in rows]
@@ -184,7 +190,14 @@ def refresh_pipeline_live(session: Session, *, corp_code: str, bas_dd: str) -> d
 
     if dart_api_key:
         try:
-            dart_rows = dart_connector.fetch_list(corp_code=corp_code, page_no=1, page_count=100, last_reprt_at="Y")
+            dart_bgn_de, dart_end_de = _resolve_dart_window(bas_dd)
+            dart_rows = dart_connector.fetch_list(
+                corp_code=corp_code,
+                page_no=1,
+                page_count=100,
+                bgn_de=dart_bgn_de,
+                end_de=dart_end_de,
+            )
             krx_status["dart"] = f"ok:{len(dart_rows)}"
         except Exception as exc:  # pragma: no cover - runtime diagnostics
             dart_error = f"{type(exc).__name__}: {exc}"

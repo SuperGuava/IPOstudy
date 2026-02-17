@@ -45,7 +45,9 @@ def test_refresh_pipeline_live_collects_rows_from_multiple_paths(monkeypatch) ->
             corp_code: str,
             page_no: int,
             page_count: int,
-            last_reprt_at: str,
+            last_reprt_at: str | None = None,
+            bgn_de: str | None = None,
+            end_de: str | None = None,
         ) -> list[dict]:
             return [{"corp_code": corp_code, "rcept_no": "1"}]
 
@@ -91,6 +93,61 @@ def test_refresh_pipeline_live_collects_rows_from_multiple_paths(monkeypatch) ->
     assert len(captured_bundle["krx_rows"]) == 3
 
 
+def test_refresh_pipeline_live_queries_dart_with_date_window(monkeypatch) -> None:
+    monkeypatch.setenv("DART_API_KEY", "dart-key")
+    monkeypatch.delenv("KRX_API_KEY", raising=False)
+    monkeypatch.delenv("KRX_API_INDEX_PATH", raising=False)
+    monkeypatch.delenv("KRX_API_STOCK_PATH", raising=False)
+    monkeypatch.delenv("KRX_API_SECURITIES_PATH", raising=False)
+    monkeypatch.delenv("KRX_API_BOND_PATH", raising=False)
+    monkeypatch.delenv("KRX_API_DERIVATIVE_PATH", raising=False)
+    monkeypatch.delenv("KRX_API_GENERAL_PATH", raising=False)
+    monkeypatch.delenv("KRX_API_ESG_PATH", raising=False)
+
+    class FakeKindConnector:
+        def fetch_public_offering_companies(self) -> list[dict]:
+            return []
+
+    captured_call: dict[str, str] = {}
+
+    class FakeDartConnector:
+        def __init__(self, api_key: str) -> None:
+            self.api_key = api_key
+
+        def fetch_list(
+            self,
+            corp_code: str,
+            page_no: int,
+            page_count: int,
+            last_reprt_at: str | None = None,
+            bgn_de: str | None = None,
+            end_de: str | None = None,
+        ) -> list[dict]:
+            captured_call["corp_code"] = corp_code
+            captured_call["bgn_de"] = bgn_de or ""
+            captured_call["end_de"] = end_de or ""
+            captured_call["last_reprt_at"] = last_reprt_at or ""
+            return []
+
+    @dataclass
+    class FakeRunResult:
+        published: bool
+        issues: list
+
+    def fake_run_pipeline(session: object, bundle: dict) -> FakeRunResult:
+        return FakeRunResult(published=True, issues=[])
+
+    monkeypatch.setattr(ipo_service, "KindConnector", FakeKindConnector)
+    monkeypatch.setattr(ipo_service, "DartConnector", FakeDartConnector)
+    monkeypatch.setattr(ipo_service, "run_pipeline", fake_run_pipeline)
+
+    _ = ipo_service.refresh_pipeline_live(object(), corp_code="00126380", bas_dd="20260217")
+    assert captured_call["corp_code"] == "00126380"
+    assert captured_call["bgn_de"] == "20250217"
+    assert captured_call["end_de"] == "20260217"
+    assert captured_call["last_reprt_at"] == ""
+
+
 def test_refresh_pipeline_live_retries_transient_access_denied(monkeypatch) -> None:
     monkeypatch.setenv("DART_API_KEY", "dart-key")
     monkeypatch.setenv("KRX_API_KEY", "krx-key")
@@ -115,7 +172,9 @@ def test_refresh_pipeline_live_retries_transient_access_denied(monkeypatch) -> N
             corp_code: str,
             page_no: int,
             page_count: int,
-            last_reprt_at: str,
+            last_reprt_at: str | None = None,
+            bgn_de: str | None = None,
+            end_de: str | None = None,
         ) -> list[dict]:
             return []
 
@@ -175,7 +234,9 @@ def test_refresh_pipeline_live_does_not_retry_unauthorized_error(monkeypatch) ->
             corp_code: str,
             page_no: int,
             page_count: int,
-            last_reprt_at: str,
+            last_reprt_at: str | None = None,
+            bgn_de: str | None = None,
+            end_de: str | None = None,
         ) -> list[dict]:
             return []
 
