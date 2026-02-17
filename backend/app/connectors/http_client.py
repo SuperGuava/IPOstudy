@@ -41,3 +41,16 @@ class HttpClient:
         )
         body = self._open(request, timeout=30).decode("utf-8")
         return json.loads(body)
+
+    def post_text(self, url: str, data: dict, headers: dict[str, str] | None = None) -> str:
+        encoded = urlencode(data).encode("utf-8")
+        request_headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
+        if headers:
+            request_headers.update(headers)
+        request = Request(
+            url,
+            data=encoded,
+            headers=request_headers,
+            method="POST",
+        )
+        return self._open(request, timeout=30).decode("utf-8")

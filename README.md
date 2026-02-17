@@ -17,12 +17,12 @@ Modular monolith for Korean IPO and company snapshot data using DART, KIND, and 
    - `cd backend`
    - `python -m alembic upgrade head`
    - `python -m pytest -q`
-   - `uvicorn app.main:app --reload --port 8000`
+   - `python -m uvicorn app.main:app --reload --port 8000`
 3. Web:
    - `cd web`
    - `npm install`
    - (optional) set `NEXT_PUBLIC_API_BASE_URL` in root `.env`
-   - `npm run dev -- --port 3000`
+   - `npm run dev -- -p 3000`
 
 ## Operations Docs
 
@@ -68,6 +68,9 @@ Modular monolith for Korean IPO and company snapshot data using DART, KIND, and 
 - Web e2e: `cd web && npx playwright test`
 - Web build (stable): `cd web && npm run build:stable`
 - One-shot ETL: `cd backend && python scripts/run_pipeline_once.py --corp-code 00126380`
+- IPO refresh smoke:
+  - `GET /api/v1/ipo/pipeline?refresh=true&corp_code=00126380&bas_dd=20250131`
+  - then `GET /api/v1/ipo/pipeline` should return multi-row snapshot (not single demo row).
 
 ## KRX Open API Check
 

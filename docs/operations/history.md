@@ -1,6 +1,6 @@
 # Execution History and Major Notes
 
-Updated: 2026-02-17 08:20 (+09:00)
+Updated: 2026-02-17 09:20 (+09:00)
 
 ## 1) Repository / Integration History
 
@@ -502,3 +502,37 @@ Verification:
 1. `python -m pytest -q` -> `65 passed`
 2. `cd web && npx playwright test` -> `2 passed`
 3. `cd web && npm run build:stable` -> success
+
+## 24) KIND Full Listing Recovery + Snapshot Replace Fix (2026-02-17)
+
+Observed:
+
+1. `/api/v1/ipo/pipeline` showed only one demo company in some environments.
+2. KIND main page (`searchPubofrProgComMain`) returned HTML shell, but row data was loaded via server-side sub request.
+3. Existing publish path used merge/upsert and could leave old demo rows after live refresh.
+
+Applied:
+
+1. `backend/app/connectors/http_client.py`
+   - added `post_text(...)` helper for form-post HTML fetch.
+2. `backend/app/connectors/kind_connector.py`
+   - switched to `searchPubofrProgComSub` POST fetch path
+   - added robust parser for modern/legacy table structures
+   - normalized stage values to quality-compatible set (`prelisting`, `listed`, fallback `offering`)
+3. `backend/app/etl/pipeline.py`
+   - publish path now replaces old snapshot rows (`delete(IpoPipelineItem)` before insert loop)
+4. Tests updated:
+   - `backend/tests/connectors/test_kind_connector.py`
+   - `backend/tests/etl/test_pipeline_e2e.py`
+   - new fixture `backend/tests/fixtures/kind/pubofrprogcom_sub.html`
+
+Verification:
+
+1. `cd backend && python -m pytest -q` -> `67 passed`
+2. `GET /api/v1/ipo/pipeline?refresh=true&corp_code=00126380&bas_dd=20250131` ->
+   - `status=200`
+   - `refresh.published=true`
+   - `refresh.kind_rows=2301`
+3. `GET /api/v1/ipo/pipeline` ->
+   - `total=2301`
+   - demo row (`alpha-tech`) absent

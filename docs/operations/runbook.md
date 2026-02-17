@@ -35,12 +35,27 @@ Recommended validated paths (verified on 2026-02-16):
 2. Backend API:
    - `cd backend`
    - `python -m alembic upgrade head`
-   - `uvicorn app.main:app --host 0.0.0.0 --port 8000`
+   - `python -m uvicorn app.main:app --host 0.0.0.0 --port 8000`
    - If shell env is not exported, load `.env` before startup (PowerShell):
      - `Get-Content ..\\.env | %{ if($_ -match '^[A-Za-z_][A-Za-z0-9_]*='){ $k,$v=$_.Split('=',2); [System.Environment]::SetEnvironmentVariable($k,$v,'Process') } }`
 3. Worker (future Celery integration):
    - `cd backend`
    - `python -m app.jobs.celery_app`
+
+## Beginner Troubleshooting
+
+1. `uvicorn` not recognized in PowerShell:
+   - Use module form, not bare command:
+   - `python -m uvicorn app.main:app --host 0.0.0.0 --port 8000`
+2. `npm run dev -- --port 3000` fails with `next dev 3000`:
+   - Use:
+   - `npm run dev -- -p 3000`
+3. IPO list shows only one company:
+   - Run one refresh call first:
+   - `GET /api/v1/ipo/pipeline?refresh=true&corp_code=00126380&bas_dd=20250131`
+   - Then check:
+   - `GET /api/v1/ipo/pipeline`
+   - Expected: large dataset (current reference about 2,300 rows), demo row `alpha-tech` absent.
 
 ## Health Checks
 

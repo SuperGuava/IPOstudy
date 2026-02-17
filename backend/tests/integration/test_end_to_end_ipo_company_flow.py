@@ -11,7 +11,8 @@ def test_end_to_end_ipo_company_flow() -> None:
 
     items = pipeline_response.json()["items"]
     assert items
-    corp_code = items[0]["corp_code"]
+    # Live KIND snapshot rows can omit corp_code when DART linkage is unavailable.
+    corp_code = next((item.get("corp_code") for item in items if item.get("corp_code")), "00126380")
     assert corp_code
 
     snapshot_response = client.get("/api/v1/company/snapshot", params={"corp_code": corp_code})

@@ -1,6 +1,6 @@
 ﻿# Session Handoff
 
-Updated: 2026-02-16
+Updated: 2026-02-17
 
 ## Goal
 
@@ -18,10 +18,10 @@ Allow any new session to resume development without prior chat context.
 
 1. Backend:
    - `cd backend`
-   - `uvicorn app.main:app --host 0.0.0.0 --port 8000`
+   - `python -m uvicorn app.main:app --host 0.0.0.0 --port 8000`
 2. Web:
    - `cd web`
-   - `npm run dev -- --port 3000`
+   - `npm run dev -- -p 3000`
 
 ## Smoke Checklist
 
@@ -53,6 +53,19 @@ Allow any new session to resume development without prior chat context.
 - KRX:
   - intermittent `403 Access Denied` can occur.
   - backend refresh path retries transient `Access Denied` responses.
+- KIND:
+  - real rows are loaded via `searchPubofrProgComSub` and parser supports that path.
+- Snapshot publish:
+  - publish path replaces previous `ipo_pipeline_item` snapshot rows to prevent stale demo leftovers.
+
+## Current Reference Numbers (2026-02-17)
+
+1. `cd backend && python -m pytest -q` -> `67 passed`
+2. `GET /api/v1/ipo/pipeline?refresh=true&corp_code=00126380&bas_dd=20250131` ->
+   - `status=200`
+   - `refresh.published=true`
+   - `refresh.kind_rows=2301`
+3. `GET /api/v1/ipo/pipeline` -> `total=2301` (no `alpha-tech`)
 
 ## Where To Read First
 
