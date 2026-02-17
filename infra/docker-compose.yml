@@ -2,9 +2,9 @@ services:
   postgres:
     image: postgres:16
     environment:
-      POSTGRES_DB: anti_gravity
-      POSTGRES_USER: anti_gravity
-      POSTGRES_PASSWORD: anti_gravity
+      POSTGRES_DB: ${POSTGRES_DB:-anti_gravity}
+      POSTGRES_USER: ${POSTGRES_USER:-anti_gravity}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
     ports:
       - "55432:5432"
     volumes:
