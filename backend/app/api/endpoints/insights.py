@@ -6,6 +6,7 @@ from app.services.insight_service import (
     compare_company_insights,
     get_company_insight_detail,
     get_insight_overview,
+    get_validation_framework,
     list_analysis_templates,
     list_companies_for_explorer,
 )
@@ -41,6 +42,11 @@ def get_insight_company(company_key: str) -> dict:
 def get_insight_templates() -> dict:
     items = list_analysis_templates()
     return {"items": items, "total": len(items)}
+
+
+@router.get("/validation")
+def get_insight_validation() -> dict:
+    return get_validation_framework()
 
 
 @router.get("/overview")

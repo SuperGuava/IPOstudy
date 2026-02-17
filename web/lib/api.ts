@@ -117,6 +117,20 @@ export type InsightOverview = {
   top_lead_managers: Array<{ lead_manager: string; count: number }>;
 };
 
+export type InsightValidation = {
+  status: string;
+  approval_conditions: string[];
+  kill_criteria: string[];
+  budget: {
+    legal_review_usd: number;
+    landing_ads_usd: number;
+    infra_12m_usd: number;
+    total_1y_usd: number;
+    revenue_1y_usd: number;
+    pnl_1y_usd: number;
+  };
+};
+
 type IpoPipelineResponse = {
   items: IpoItem[];
   total: number;
@@ -153,6 +167,7 @@ type InsightTemplateResponse = {
 type InsightCompareResponse = InsightCompare;
 type InsightReportResponse = InsightReport;
 type InsightOverviewResponse = InsightOverview;
+type InsightValidationResponse = InsightValidation;
 
 const API_BASE = process.env.API_BASE_URL ?? process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000/api/v1";
 
@@ -322,4 +337,8 @@ export async function getInsightReport(companyKey: string, templateId: string): 
 
 export async function getInsightOverview(): Promise<InsightOverviewResponse> {
   return getJson<InsightOverviewResponse>("/insights/overview");
+}
+
+export async function getInsightValidation(): Promise<InsightValidationResponse> {
+  return getJson<InsightValidationResponse>("/insights/validation");
 }

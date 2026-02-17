@@ -9,6 +9,7 @@ import {
   getInsightOverview,
   getInsightReport,
   getInsightTemplates,
+  getInsightValidation,
 } from "@/lib/api";
 
 function textParam(value: string | string[] | undefined): string {
@@ -52,7 +53,7 @@ export default async function ExplorerPage({
     .filter(Boolean)
     .slice(0, 3);
 
-  const [companies, templates, overview] = await Promise.all([
+  const [companies, templates, overview, validation] = await Promise.all([
     getInsightCompanies({
       query: query || undefined,
       stage: stage || undefined,
@@ -65,6 +66,19 @@ export default async function ExplorerPage({
       stage_counts: {},
       risk_counts: { low: 0, medium: 0, high: 0 },
       top_lead_managers: [],
+    })),
+    getInsightValidation().catch(() => ({
+      status: "unknown",
+      approval_conditions: [],
+      kill_criteria: [],
+      budget: {
+        legal_review_usd: 0,
+        landing_ads_usd: 0,
+        infra_12m_usd: 0,
+        total_1y_usd: 0,
+        revenue_1y_usd: 0,
+        pnl_1y_usd: 0,
+      },
     })),
   ]);
 
@@ -321,6 +335,40 @@ export default async function ExplorerPage({
               ))}
               {overview.top_lead_managers.length === 0 ? <li className="text-ag-mute">No lead manager data.</li> : null}
             </ul>
+          </Card>
+
+          <Card>
+            <div className="mb-2 text-[11px] uppercase tracking-wide text-ag-mute">Validation Gate</div>
+            <div className="mb-2 text-xs">
+              Status: <span className="font-semibold">{validation.status}</span>
+            </div>
+            <div className="grid gap-2 lg:grid-cols-2">
+              <div>
+                <div className="mb-1 text-[11px] uppercase tracking-wide text-ag-mute">Approval Conditions</div>
+                <ul className="space-y-1 text-xs">
+                  {validation.approval_conditions.map((line, idx) => (
+                    <li key={idx} className="rounded border border-ag-line bg-ag-panel/70 px-2 py-1.5">
+                      {line}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <div className="mb-1 text-[11px] uppercase tracking-wide text-ag-mute">Kill Criteria</div>
+                <ul className="space-y-1 text-xs">
+                  {validation.kill_criteria.map((line, idx) => (
+                    <li key={idx} className="rounded border border-ag-line bg-ag-panel/70 px-2 py-1.5">
+                      {line}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+            <div className="mt-2 rounded border border-ag-line bg-ag-panel/70 p-2 text-xs">
+              Budget: legal ${validation.budget.legal_review_usd}, ads ${validation.budget.landing_ads_usd}, infra $
+              {validation.budget.infra_12m_usd}, total ${validation.budget.total_1y_usd}, revenue $
+              {validation.budget.revenue_1y_usd}, pnl ${validation.budget.pnl_1y_usd}
+            </div>
           </Card>
         </div>
       </div>

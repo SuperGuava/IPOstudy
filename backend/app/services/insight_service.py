@@ -58,6 +58,31 @@ def list_analysis_templates() -> list[dict]:
     ]
 
 
+def get_validation_framework() -> dict:
+    return {
+        "status": "conditional_approval",
+        "approval_conditions": [
+            "Legal review passed for valuation-range expression",
+            "Landing page conversion >= 2.0%",
+            "Peer matching backtest accuracy >= 70%",
+        ],
+        "kill_criteria": [
+            "Legal review requires unresolvable business-model change",
+            "Landing conversion < 1.0%",
+            "Backtest accuracy < 60%",
+            "MAU < 100 after 3 months",
+        ],
+        "budget": {
+            "legal_review_usd": 1500,
+            "landing_ads_usd": 100,
+            "infra_12m_usd": 156,
+            "total_1y_usd": 1756,
+            "revenue_1y_usd": 864,
+            "pnl_1y_usd": -892,
+        },
+    }
+
+
 def get_insight_overview(session: Session) -> dict:
     rows = session.execute(select(IpoPipelineItem)).scalars().all()
     corp_codes = [row.corp_code for row in rows if row.corp_code]

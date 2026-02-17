@@ -37,5 +37,6 @@ test("company explorer renders beginner-friendly analysis surface", async ({ pag
   await expect(page.getByText("Analysis Templates", { exact: true })).toBeVisible();
   await expect(page.getByText("Compare Snapshot", { exact: true })).toBeVisible();
   await expect(page.getByText("Top Lead Managers", { exact: true })).toBeVisible();
+  await expect(page.getByText("Validation Gate", { exact: true })).toBeVisible();
   await expect(page.getByText("Company List", { exact: true })).toBeVisible();
 });
