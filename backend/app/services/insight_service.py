@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
@@ -21,30 +23,103 @@ def _risk_label(*, fail_count: int, warn_count: int) -> str:
     return "low"
 
 
-def list_companies_for_explorer(session: Session, *, query: str | None, limit: int) -> list[dict]:
+def list_analysis_templates() -> list[dict]:
+    return [
+        {
+            "template_id": "foundation-check",
+            "title": "Foundation Check",
+            "description": "Review stage, listing date, lead manager, and critical quality issues first.",
+            "steps": [
+                "1) Check current IPO stage",
+                "2) Check listing date and lead manager",
+                "3) Resolve FAIL issues first",
+            ],
+        },
+        {
+            "template_id": "quality-risk-scan",
+            "title": "Quality Risk Scan",
+            "description": "Review severity/source issue distribution to estimate data reliability risk.",
+            "steps": [
+                "1) Check FAIL and WARN counts",
+                "2) Identify concentrated issue sources",
+                "3) Re-collect data or adjust mappings",
+            ],
+        },
+        {
+            "template_id": "listing-readiness",
+            "title": "Listing Readiness",
+            "description": "Interpret offering/prelisting/listed states and choose next monitoring action.",
+            "steps": [
+                "1) Confirm stage category",
+                "2) Check listing date timing",
+                "3) Plan next monitoring cadence",
+            ],
+        },
+    ]
+
+
+def _build_quick_insights(
+    *,
+    corp_name: str,
+    stage: str,
+    listing_date: str | None,
+    lead_manager: str | None,
+    quality_by_severity: dict[str, int],
+) -> list[str]:
+    insights = [f"{corp_name} is currently in '{stage}' stage."]
+    if listing_date:
+        insights.append(f"Reference listing date: {listing_date}.")
+    if lead_manager:
+        insights.append(f"Lead manager: {lead_manager}.")
+    insights.append(
+        f"Quality status: FAIL {quality_by_severity['FAIL']}, WARN {quality_by_severity['WARN']}, PASS {quality_by_severity['PASS']}."
+    )
+    return insights
+
+
+def _load_quality_counts_by_corp_code(session: Session, corp_codes: list[str]) -> dict[str, dict[str, int]]:
+    if not corp_codes:
+        return {}
+    quality_rows = session.execute(
+        select(DataQualityIssue.entity_key, DataQualityIssue.severity, func.count(DataQualityIssue.id))
+        .where(DataQualityIssue.entity_key.in_(corp_codes))
+        .group_by(DataQualityIssue.entity_key, DataQualityIssue.severity)
+    ).all()
+    quality_counts: dict[str, dict[str, int]] = {}
+    for entity_key, severity, count in quality_rows:
+        slot = quality_counts.setdefault(str(entity_key), {"PASS": 0, "WARN": 0, "FAIL": 0})
+        slot[str(severity)] = int(count)
+    return quality_counts
+
+
+def list_companies_for_explorer(
+    session: Session,
+    *,
+    query: str | None,
+    limit: int,
+    stage: str | None = None,
+    risk_label: str | None = None,
+) -> list[dict]:
     stmt = select(IpoPipelineItem).order_by(IpoPipelineItem.listing_date.desc().nullslast(), IpoPipelineItem.corp_name.asc())
     if query:
         q = query.strip()
         if q:
             pattern = f"%{q}%"
             stmt = stmt.where(or_(IpoPipelineItem.corp_name.ilike(pattern), IpoPipelineItem.corp_code.ilike(pattern)))
-    rows = session.execute(stmt.limit(limit)).scalars().all()
+    if stage:
+        stmt = stmt.where(IpoPipelineItem.stage == stage)
 
+    fetch_limit = min(1000, max(limit, limit * 5 if risk_label else limit))
+    rows = session.execute(stmt.limit(fetch_limit)).scalars().all()
     corp_codes = [row.corp_code for row in rows if row.corp_code]
-    quality_counts: dict[str, dict[str, int]] = {}
-    if corp_codes:
-        quality_rows = session.execute(
-            select(DataQualityIssue.entity_key, DataQualityIssue.severity, func.count(DataQualityIssue.id))
-            .where(DataQualityIssue.entity_key.in_(corp_codes))
-            .group_by(DataQualityIssue.entity_key, DataQualityIssue.severity)
-        ).all()
-        for entity_key, severity, count in quality_rows:
-            slot = quality_counts.setdefault(str(entity_key), {"PASS": 0, "WARN": 0, "FAIL": 0})
-            slot[str(severity)] = int(count)
+    quality_counts = _load_quality_counts_by_corp_code(session, corp_codes)
 
     items: list[dict] = []
     for row in rows:
         counts = quality_counts.get(row.corp_code or "", {"PASS": 0, "WARN": 0, "FAIL": 0})
+        row_risk_label = _risk_label(fail_count=counts["FAIL"], warn_count=counts["WARN"])
+        if risk_label and row_risk_label != risk_label:
+            continue
         items.append(
             {
                 "company_key": _build_company_key(row.corp_code, row.corp_name),
@@ -54,17 +129,18 @@ def list_companies_for_explorer(session: Session, *, query: str | None, limit: i
                 "listing_date": row.listing_date.isoformat() if row.listing_date else None,
                 "lead_manager": row.lead_manager,
                 "quality": counts,
-                "risk_label": _risk_label(fail_count=counts["FAIL"], warn_count=counts["WARN"]),
+                "risk_label": row_risk_label,
             }
         )
+        if len(items) >= limit:
+            break
     return items
 
 
-def get_company_insight_detail(session: Session, *, company_key: str) -> dict | None:
-    row = None
+def _resolve_pipeline_row(session: Session, *, company_key: str) -> IpoPipelineItem | None:
     if company_key.startswith("name:"):
         corp_name = company_key.split(":", 1)[1]
-        row = (
+        return (
             session.execute(
                 select(IpoPipelineItem)
                 .where(IpoPipelineItem.corp_name == corp_name)
@@ -74,18 +150,20 @@ def get_company_insight_detail(session: Session, *, company_key: str) -> dict | 
             .scalars()
             .first()
         )
-    else:
-        row = (
-            session.execute(
-                select(IpoPipelineItem)
-                .where(IpoPipelineItem.corp_code == company_key)
-                .order_by(IpoPipelineItem.listing_date.desc().nullslast())
-                .limit(1)
-            )
-            .scalars()
-            .first()
+    return (
+        session.execute(
+            select(IpoPipelineItem)
+            .where(IpoPipelineItem.corp_code == company_key)
+            .order_by(IpoPipelineItem.listing_date.desc().nullslast())
+            .limit(1)
         )
+        .scalars()
+        .first()
+    )
 
+
+def get_company_insight_detail(session: Session, *, company_key: str) -> dict | None:
+    row = _resolve_pipeline_row(session, company_key=company_key)
     if row is None:
         return None
 
@@ -101,29 +179,30 @@ def get_company_insight_detail(session: Session, *, company_key: str) -> dict | 
             quality_by_source[str(source)] = quality_by_source.get(str(source), 0) + int(count)
             quality_by_severity[str(severity)] = quality_by_severity.get(str(severity), 0) + int(count)
 
-    quick_insights: list[str] = []
-    quick_insights.append(f"현재 IPO 단계는 '{row.stage}' 입니다.")
-    if row.listing_date:
-        quick_insights.append(f"기준 상장일은 {row.listing_date.isoformat()} 입니다.")
-    if row.lead_manager:
-        quick_insights.append(f"대표 주관사는 {row.lead_manager} 입니다.")
-    quick_insights.append(
-        f"품질 이슈 요약: FAIL {quality_by_severity['FAIL']}건, WARN {quality_by_severity['WARN']}건 입니다."
+    listing_date = row.listing_date.isoformat() if row.listing_date else None
+    risk_label = _risk_label(fail_count=quality_by_severity["FAIL"], warn_count=quality_by_severity["WARN"])
+    quick_insights = _build_quick_insights(
+        corp_name=row.corp_name,
+        stage=row.stage,
+        listing_date=listing_date,
+        lead_manager=row.lead_manager,
+        quality_by_severity=quality_by_severity,
     )
 
     beginner_summary = (
-        f"{row.corp_name}은(는) 현재 '{row.stage}' 단계이며, "
-        f"즉시 확인할 항목은 품질 FAIL {quality_by_severity['FAIL']}건 입니다."
+        f"{row.corp_name} is in '{row.stage}' stage. "
+        f"Start from FAIL {quality_by_severity['FAIL']} issues and then review WARN {quality_by_severity['WARN']}."
     )
 
     return {
         "company_key": _build_company_key(row.corp_code, row.corp_name),
         "corp_code": row.corp_code,
         "corp_name": row.corp_name,
+        "risk_label": risk_label,
         "ipo": {
             "pipeline_id": row.pipeline_id,
             "stage": row.stage,
-            "listing_date": row.listing_date.isoformat() if row.listing_date else None,
+            "listing_date": listing_date,
             "lead_manager": row.lead_manager,
         },
         "quality": {"severity": quality_by_severity, "source": quality_by_source},
@@ -132,37 +211,79 @@ def get_company_insight_detail(session: Session, *, company_key: str) -> dict | 
     }
 
 
-def list_analysis_templates() -> list[dict]:
-    return [
-        {
-            "template_id": "foundation-check",
-            "title": "기본 체력 점검",
-            "description": "기업의 현재 단계, 상장일, 주관사, 품질 FAIL 여부를 한 번에 확인합니다.",
-            "steps": [
-                "1) IPO 단계 확인",
-                "2) 상장일/주관사 확인",
-                "3) 품질 FAIL 우선 조치",
-            ],
-        },
-        {
-            "template_id": "quality-risk-scan",
-            "title": "데이터 품질 리스크 스캔",
-            "description": "DART/KIND/KRX/CROSS 이슈 분포를 보고 신뢰도 리스크를 판단합니다.",
-            "steps": [
-                "1) FAIL, WARN 건수 확인",
-                "2) source별 집중 구간 확인",
-                "3) 재수집 또는 매핑 보정",
-            ],
-        },
-        {
-            "template_id": "listing-readiness",
-            "title": "상장 준비 상태 해석",
-            "description": "prelisting/listed/offering 상태를 기준으로 현재 액션을 추천합니다.",
-            "steps": [
-                "1) stage 분류 확인",
-                "2) listing_date 시점 확인",
-                "3) 다음 모니터링 일정 설정",
-            ],
-        },
-    ]
+def compare_company_insights(session: Session, *, company_keys: list[str]) -> dict:
+    unique_keys = list(dict.fromkeys(company_keys))[:5]
+    items: list[dict] = []
+    for key in unique_keys:
+        detail = get_company_insight_detail(session, company_key=key)
+        if detail is not None:
+            items.append(detail)
 
+    if not items:
+        return {
+            "items": [],
+            "total": 0,
+            "summary": {"max_fail": 0, "avg_warn": 0.0, "risk_distribution": {"low": 0, "medium": 0, "high": 0}},
+        }
+
+    max_fail = max(item["quality"]["severity"]["FAIL"] for item in items)
+    avg_warn = sum(item["quality"]["severity"]["WARN"] for item in items) / len(items)
+    risk_distribution = {"low": 0, "medium": 0, "high": 0}
+    for item in items:
+        risk_distribution[item["risk_label"]] += 1
+
+    return {
+        "items": items,
+        "total": len(items),
+        "summary": {
+            "max_fail": max_fail,
+            "avg_warn": round(avg_warn, 2),
+            "risk_distribution": risk_distribution,
+        },
+    }
+
+
+def build_beginner_report(session: Session, *, company_key: str, template_id: str) -> dict | None:
+    detail = get_company_insight_detail(session, company_key=company_key)
+    if detail is None:
+        return None
+    templates = {row["template_id"]: row for row in list_analysis_templates()}
+    template = templates.get(template_id)
+    if template is None:
+        return None
+
+    fail_count = detail["quality"]["severity"]["FAIL"]
+    warn_count = detail["quality"]["severity"]["WARN"]
+    stage = detail["ipo"]["stage"]
+    listing_date = detail["ipo"]["listing_date"] or "-"
+    lead_manager = detail["ipo"]["lead_manager"] or "-"
+
+    if template_id == "quality-risk-scan":
+        report_lines = [
+            f"Risk label: {detail['risk_label']}.",
+            f"Severity counts -> FAIL {fail_count}, WARN {warn_count}.",
+            f"Primary action: focus on sources with repeated FAIL events first.",
+            "Secondary action: re-collect data and validate parser mappings.",
+        ]
+    elif template_id == "listing-readiness":
+        report_lines = [
+            f"Stage check: current stage is '{stage}'.",
+            f"Date check: listing date is {listing_date}.",
+            f"Execution check: lead manager is {lead_manager}.",
+            f"Quality gate check: FAIL {fail_count}, WARN {warn_count}.",
+        ]
+    else:
+        report_lines = [
+            f"Company: {detail['corp_name']}.",
+            f"Current stage: {stage}, listing date: {listing_date}, lead manager: {lead_manager}.",
+            f"Quality summary: FAIL {fail_count}, WARN {warn_count}.",
+            "Recommendation: resolve FAIL first, then handle high-frequency WARN rules.",
+        ]
+
+    return {
+        "company_key": detail["company_key"],
+        "template_id": template_id,
+        "template_title": template["title"],
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "report_lines": report_lines,
+    }

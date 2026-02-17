@@ -41,6 +41,8 @@ Modular monolith for Korean IPO and company snapshot data using DART, KIND, and 
 - `GET /api/v1/insights/companies?query=<name_or_code>&limit=30`
 - `GET /api/v1/insights/company?company_key=<company_key>`
 - `GET /api/v1/insights/templates`
+- `GET /api/v1/insights/compare?company_key=<k1>&company_key=<k2>`
+- `GET /api/v1/insights/report?company_key=<k1>&template_id=foundation-check`
 - `GET /api/v1/export/ipo.xlsx`
 - `GET /api/v1/export/company/{corp_code}.xlsx`
 - `GET /api/v1/quality/issues`
@@ -53,6 +55,7 @@ Modular monolith for Korean IPO and company snapshot data using DART, KIND, and 
 
 - `Dashboard` page is API-backed (`/ipo/pipeline`, `/quality/issues`, `/quality/summary`).
 - `Company Explorer` page is API-backed (`/insights/companies`, `/insights/company`, `/insights/templates`).
+- `Company Explorer` supports stage/risk filters, multi-company compare, and template-based beginner reports.
 - `Dashboard` includes stage mix and fail-rate trend bars.
 - `Quality` page is API-backed (`/quality/issues`, `/quality/summary`).
 - `Quality` supports query filters (`source`, `severity`, `from`, `to`).

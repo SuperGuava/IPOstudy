@@ -70,6 +70,7 @@ export type InsightCompanyDetail = {
   company_key: string;
   corp_code: string | null;
   corp_name: string;
+  risk_label: "low" | "medium" | "high";
   ipo: {
     pipeline_id: string;
     stage: string;
@@ -89,6 +90,24 @@ export type InsightTemplate = {
   title: string;
   description: string;
   steps: string[];
+};
+
+export type InsightCompare = {
+  items: InsightCompanyDetail[];
+  total: number;
+  summary: {
+    max_fail: number;
+    avg_warn: number;
+    risk_distribution: Record<string, number>;
+  };
+};
+
+export type InsightReport = {
+  company_key: string;
+  template_id: string;
+  template_title: string;
+  generated_at: string;
+  report_lines: string[];
 };
 
 type IpoPipelineResponse = {
@@ -123,6 +142,9 @@ type InsightTemplateResponse = {
   items: InsightTemplate[];
   total: number;
 };
+
+type InsightCompareResponse = InsightCompare;
+type InsightReportResponse = InsightReport;
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000/api/v1";
 
@@ -248,6 +270,8 @@ export async function getQualityRules(options?: {
 export async function getInsightCompanies(options?: {
   query?: string;
   limit?: number;
+  stage?: string;
+  riskLabel?: "low" | "medium" | "high";
 }): Promise<InsightCompanyResponse> {
   const query = new URLSearchParams();
   if (options?.query) {
@@ -255,6 +279,12 @@ export async function getInsightCompanies(options?: {
   }
   if (options?.limit) {
     query.set("limit", String(options.limit));
+  }
+  if (options?.stage) {
+    query.set("stage", options.stage);
+  }
+  if (options?.riskLabel) {
+    query.set("risk_label", options.riskLabel);
   }
   const suffix = query.size > 0 ? `?${query.toString()}` : "";
   return getJson<InsightCompanyResponse>(`/insights/companies${suffix}`);
@@ -266,4 +296,18 @@ export async function getInsightCompany(companyKey: string): Promise<InsightComp
 
 export async function getInsightTemplates(): Promise<InsightTemplateResponse> {
   return getJson<InsightTemplateResponse>("/insights/templates");
+}
+
+export async function getInsightCompare(companyKeys: string[]): Promise<InsightCompareResponse> {
+  const query = new URLSearchParams();
+  for (const key of companyKeys) {
+    query.append("company_key", key);
+  }
+  const suffix = query.size > 0 ? `?${query.toString()}` : "";
+  return getJson<InsightCompareResponse>(`/insights/compare${suffix}`);
+}
+
+export async function getInsightReport(companyKey: string, templateId: string): Promise<InsightReportResponse> {
+  const query = new URLSearchParams({ company_key: companyKey, template_id: templateId });
+  return getJson<InsightReportResponse>(`/insights/report?${query.toString()}`);
 }

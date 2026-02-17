@@ -1,6 +1,6 @@
 # Execution History and Major Notes
 
-Updated: 2026-02-17 11:10 (+09:00)
+Updated: 2026-02-17 11:55 (+09:00)
 
 ## 1) Repository / Integration History
 
@@ -584,3 +584,34 @@ Verification:
 1. `cd backend && python -m pytest -q` -> pass
 2. `cd web && npm run build:stable` -> pass
 3. `cd web && npx playwright test` -> pass
+
+## 27) Explorer Upgrade: Filters, Compare, Guided Report (2026-02-17)
+
+Applied:
+
+1. Extended insights API:
+   - `GET /api/v1/insights/companies` now supports `stage`, `risk_label`
+   - `GET /api/v1/insights/compare` for multi-company side-by-side summary
+   - `GET /api/v1/insights/report` for template-based beginner report lines
+2. Extended backend service:
+   - risk-aware company filtering
+   - compare summary (`max_fail`, `avg_warn`, `risk_distribution`)
+   - template-based report generation (`foundation-check`, `quality-risk-scan`, `listing-readiness`)
+3. Upgraded Explorer UX:
+   - stage/risk/template controls
+   - per-row compare toggle (`Add Compare` / `Remove Compare`)
+   - `Beginner Report` panel
+   - `Compare Snapshot` panel
+4. Updated docs for new API and smoke flow.
+
+Verification:
+
+1. `cd backend && python -m pytest -q tests/api/test_insights_api.py` -> `6 passed`
+2. `cd backend && python -m pytest -q` -> `75 passed`
+3. `cd web && npm run build:stable` -> pass
+4. `cd web && npx playwright test` -> `3 passed`
+5. Runtime check:
+   - `GET /api/v1/insights/companies?limit=5` -> `200`
+   - `GET /api/v1/insights/company?company_key=name:3R` -> `200`
+   - `GET /api/v1/insights/compare?company_key=name:3R&company_key=name:3S` -> `200`
+   - `GET /api/v1/insights/report?company_key=name:3R&template_id=foundation-check` -> `200`
