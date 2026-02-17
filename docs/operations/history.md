@@ -1,6 +1,6 @@
 # Execution History and Major Notes
 
-Updated: 2026-02-17 13:35 (+09:00)
+Updated: 2026-02-17 14:20 (+09:00)
 
 ## 1) Repository / Integration History
 
@@ -26,7 +26,7 @@ Recent milestone commits:
 - Local cache target: Redis (Docker)
 - PostgreSQL host port: `55432` (changed from `5432` to avoid local port conflict)
 - App DB connection convention:
-  - `postgresql+psycopg://anti_gravity:anti_gravity@localhost:55432/anti_gravity`
+  - `postgresql+psycopg://<db_user>:<db_password>@localhost:55432/anti_gravity`
 
 Files currently reflecting runtime decision:
 
@@ -674,3 +674,37 @@ Verification:
    - `GET /api/v1/insights/overview` -> `200`
    - `GET /api/v1/insights/companies?limit=2` -> `200`
    - `GET /` on web (`3000`) -> `200`
+
+## 30) Plan A Public Deploy Preparation (Vercel + Render, 2026-02-17)
+
+Observed:
+
+1. Vercel CLI auth was missing in current environment:
+   - `npx vercel whoami` -> no credentials
+2. Without Vercel login/token, direct web publish cannot complete from this session.
+
+Applied:
+
+1. Added Render blueprint:
+   - `render.yaml`
+   - web service (`backend` Docker), managed Postgres, managed Redis
+2. Added DB URL normalization for managed platforms:
+   - `backend/app/db/url.py`
+   - used by `backend/app/db/session.py`
+   - used by `backend/alembic/env.py`
+3. Hardened backend Docker startup for managed deployment:
+   - `backend/Dockerfile` now runs migration before uvicorn
+4. Added launch validation API:
+   - `GET /api/v1/insights/validation`
+   - includes approval conditions, kill criteria, and budget model
+5. Upgraded Explorer UI:
+   - added `Validation Gate` panel
+6. Added deployment runbook:
+   - `docs/operations/vercel-render-deploy.md`
+   - linked from README/runbook/handoff
+
+Verification:
+
+1. `cd backend && python -m pytest -q tests/api/test_insights_api.py` -> `8 passed`
+2. `cd backend && python -m pytest -q` -> `77 passed`
+3. `cd web && npx playwright test` -> `3 passed`
