@@ -1,0 +1,81 @@
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-anti_gravity}
+      POSTGRES_USER: ${POSTGRES_USER:-anti_gravity}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-anti_gravity}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-anti_gravity} -d ${POSTGRES_DB:-anti_gravity}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-anti_gravity}:${POSTGRES_PASSWORD:-anti_gravity}@postgres:5432/${POSTGRES_DB:-anti_gravity}
+      REDIS_URL: redis://redis:6379/0
+      ENVIRONMENT: ${ENVIRONMENT:-production}
+      DART_API_KEY: ${DART_API_KEY:-}
+      KRX_API_KEY: ${KRX_API_KEY:-}
+      KRX_API_INDEX_PATH: ${KRX_API_INDEX_PATH:-idx/krx_dd_trd,idx/kospi_dd_trd,idx/kosdaq_dd_trd}
+      KRX_API_STOCK_PATH: ${KRX_API_STOCK_PATH:-sto/stk_bydd_trd}
+      KRX_API_SECURITIES_PATH: ${KRX_API_SECURITIES_PATH:-sto/ksq_bydd_trd,sto/ksq_isu_base_info}
+      KRX_API_BOND_PATH: ${KRX_API_BOND_PATH:-bon/bnd_bydd_trd}
+      KRX_API_DERIVATIVE_PATH: ${KRX_API_DERIVATIVE_PATH:-drv/fut_bydd_trd,drv/opt_bydd_trd}
+      KRX_API_GENERAL_PATH: ${KRX_API_GENERAL_PATH:-sto/knx_bydd_trd,sto/knx_isu_base_info}
+      KRX_API_ESG_PATH: ${KRX_API_ESG_PATH:-esg/sri_bond_info,esg/esg_index_info,esg/esg_etp_info}
+    command: >
+      sh -c "python -m alembic upgrade head &&
+             python -m uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health', timeout=5)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build:
+      context: ../web
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      API_BASE_URL: http://backend:8000/api/v1
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8000/api/v1}
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+

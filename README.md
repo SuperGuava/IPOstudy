@@ -11,6 +11,8 @@ Modular monolith for Korean IPO and company snapshot data using DART, KIND, and 
 
 ## Local Setup
 
+0. Move to repository root first:
+   - `cd D:\260214`
 1. Start infra:
    - `docker compose -f infra/docker-compose.yml up -d`
 2. Backend:
@@ -24,9 +26,27 @@ Modular monolith for Korean IPO and company snapshot data using DART, KIND, and 
    - (optional) set `NEXT_PUBLIC_API_BASE_URL` in root `.env`
    - `npm run dev -- -p 3000`
 
+## Deploy (Docker)
+
+1. Move to repository root:
+   - `cd D:\260214`
+2. Ensure `.env` has production keys (`DART_API_KEY`, `KRX_API_KEY`) and optional port overrides:
+   - `BACKEND_PORT`, `WEB_PORT`, `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`
+3. Build and start production stack:
+   - `docker compose -f infra/docker-compose.prod.yml up -d --build`
+4. Check status:
+   - `docker compose -f infra/docker-compose.prod.yml ps`
+5. Check logs:
+   - `docker compose -f infra/docker-compose.prod.yml logs -f backend`
+   - `docker compose -f infra/docker-compose.prod.yml logs -f web`
+6. Open:
+   - Web: `http://127.0.0.1:3000`
+   - API health: `http://127.0.0.1:8000/api/v1/health`
+
 ## Operations Docs
 
 - Runbook: `docs/operations/runbook.md`
+- Deployment guide: `docs/operations/deployment.md`
 - Execution history: `docs/operations/history.md`
 - Session handoff: `docs/operations/session-handoff.md`
 - Owner summary: `guava_guide.md`

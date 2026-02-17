@@ -1,13 +1,13 @@
 # Execution History and Major Notes
 
-Updated: 2026-02-17 12:20 (+09:00)
+Updated: 2026-02-17 13:35 (+09:00)
 
 ## 1) Repository / Integration History
 
 - Main repository: `https://github.com/SuperGuava/IPOstudy.git`
 - Default branch: `main`
 - Merged PR: `#1` (feature work integrated into `main`)
-- Current `main` head: `a14d6be` (`docs: add data quality operations and API references`)
+- Current `main` head: `b378f94` (`feat: add explorer overview KPIs and extended insights APIs`)
 
 Recent milestone commits:
 
@@ -636,3 +636,41 @@ Verification:
 2. `cd backend && python -m pytest -q` -> `76 passed`
 3. `cd web && npm run build:stable` -> pass
 4. `cd web && npx playwright test` -> `3 passed`
+
+## 29) Deployment Readiness and Docker Production Stack (2026-02-17)
+
+Applied:
+
+1. Added backend containerization:
+   - `backend/Dockerfile`
+   - `backend/.dockerignore`
+2. Added web containerization:
+   - `web/Dockerfile`
+   - `web/.dockerignore`
+3. Added production compose stack:
+   - `infra/docker-compose.prod.yml`
+   - services: `postgres`, `redis`, `backend`, `web`
+   - backend startup includes migration (`alembic upgrade head`)
+   - healthchecks for db/cache/api/web
+4. Migration config hardening:
+   - `backend/alembic/env.py` now respects runtime `DATABASE_URL`
+5. Runtime dependency fix:
+   - added `psycopg[binary]` in `backend/pyproject.toml`
+6. Web API base hardening:
+   - `web/lib/api.ts` now prefers `API_BASE_URL` over `NEXT_PUBLIC_API_BASE_URL`
+7. Added deployment docs:
+   - `docs/operations/deployment.md`
+   - updated `README.md`, runbook, handoff, guide
+
+Verification:
+
+1. `cd backend && python -m pytest -q` -> `76 passed`
+2. `cd web && npx playwright test` -> `3 passed`
+3. `cd web && npm run build:stable` -> pass
+4. `docker compose -f infra/docker-compose.prod.yml config` -> valid
+5. `docker compose -f infra/docker-compose.prod.yml up -d --build` -> stack healthy
+6. Runtime smoke on deployed stack:
+   - `GET /api/v1/health` -> `200`
+   - `GET /api/v1/insights/overview` -> `200`
+   - `GET /api/v1/insights/companies?limit=2` -> `200`
+   - `GET /` on web (`3000`) -> `200`

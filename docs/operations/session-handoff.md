@@ -14,6 +14,13 @@ Allow any new session to resume development without prior chat context.
 4. `cd web && npm install`
 5. `cd web && npm run build:stable`
 
+## Deploy Bootstrap (Production Compose)
+
+1. `cd D:\260214`
+2. `docker compose -f infra/docker-compose.prod.yml up -d --build`
+3. `docker compose -f infra/docker-compose.prod.yml ps`
+4. `docker compose -f infra/docker-compose.prod.yml logs -f backend`
+
 ## Runtime Launch
 
 1. Backend:
@@ -76,10 +83,10 @@ Allow any new session to resume development without prior chat context.
 ## Where To Read First
 
 1. `guava_guide.md`
-2. `docs/operations/runbook.md`
-3. `docs/operations/history.md`
-4. `docs/plans/2026-02-15-antigravity-productization-design.md`
-5. `docs/plans/2026-02-15-antigravity-productization.md`
+2. `docs/operations/deployment.md`
+3. `docs/operations/runbook.md`
+4. `docs/operations/history.md`
+5. `docs/plans/2026-02-15-antigravity-productization-design.md`
 
 ## Recommended Next Task
 

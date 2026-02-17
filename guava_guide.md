@@ -1,6 +1,6 @@
 ﻿# Guava Guide
 
-Updated: 2026-02-17
+Updated: 2026-02-17 (deployment-ready)
 Audience: product owner / 운영 담당 / 다음 세션 개발자
 
 ## 1) 현재 상태 한 줄 요약
@@ -84,7 +84,18 @@ Anti-Gravity는 제품형 운영 단계이며, 최근 이슈였던 "IPO 회사�
 5. 실수집 smoke
    - `GET /api/v1/ipo/pipeline?refresh=true&corp_code=00126380&bas_dd=20250131`
 
-## 6) 주요 문서 위치
+## 6) 배포 시작 명령 (Docker)
+
+1. 루트 이동
+   - `cd D:\260214`
+2. 프로덕션 스택 기동
+   - `docker compose -f infra/docker-compose.prod.yml up -d --build`
+3. 상태 확인
+   - `docker compose -f infra/docker-compose.prod.yml ps`
+4. 접속
+   - 웹: `http://127.0.0.1:3000`
+   - API 헬스: `http://127.0.0.1:8000/api/v1/health`
+## 7) 주요 문서 위치
 
 - 운영 런북: `docs/operations/runbook.md`
 - 실행 이력: `docs/operations/history.md`
@@ -92,7 +103,7 @@ Anti-Gravity는 제품형 운영 단계이며, 최근 이슈였던 "IPO 회사�
 - 제품화 설계: `docs/plans/2026-02-15-antigravity-productization-design.md`
 - 제품화 실행 계획: `docs/plans/2026-02-15-antigravity-productization.md`
 
-## 7) 다음 액션 (우선순위)
+## 8) 다음 액션 (우선순위)
 
 1. ESG 승인 완료 확인
    - `esg/esg_index_info`
@@ -102,7 +113,7 @@ Anti-Gravity는 제품형 운영 단계이며, 최근 이슈였던 "IPO 회사�
    - refresh API 5회 반복 호출
 3. ESG status가 `partial` -> `ok:*`로 바뀌는지 `history.md` 기록
 
-## 8) Git 운영 원칙 (이어개발용)
+## 9) Git 운영 원칙 (이어개발용)
 
 - 기능/문서/운영 안정화 단위로 커밋 분리
 - 임시 로그/빌드 산출물 커밋 금지 (`.gitignore` 반영)

@@ -1,6 +1,6 @@
 # Operations Runbook
 
-See also: `docs/operations/session-handoff.md`, `docs/operations/history.md`, `guava_guide.md`
+See also: `docs/operations/deployment.md`, `docs/operations/session-handoff.md`, `docs/operations/history.md`, `guava_guide.md`
 
 ## Environment Variables
 
@@ -8,7 +8,8 @@ See also: `docs/operations/session-handoff.md`, `docs/operations/history.md`, `g
 - `KRX_API_KEY`
 - `DATABASE_URL`
 - `REDIS_URL`
-- `NEXT_PUBLIC_API_BASE_URL` (for web server-side fetch target)
+- `API_BASE_URL` (recommended server-side fetch target for web container)
+- `NEXT_PUBLIC_API_BASE_URL` (browser fallback API target)
 - Optional KRX Open API category paths:
   - `KRX_API_INDEX_PATH`
   - `KRX_API_STOCK_PATH`
@@ -42,6 +43,21 @@ Recommended validated paths (verified on 2026-02-16):
    - `cd backend`
    - `python -m app.jobs.celery_app`
 
+## Production Deploy (Docker Compose)
+
+1. `cd D:\260214`
+2. Ensure `.env` contains API keys and optional overrides:
+   - `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`
+   - `BACKEND_PORT`, `WEB_PORT`
+3. Start:
+   - `docker compose -f infra/docker-compose.prod.yml up -d --build`
+4. Check:
+   - `docker compose -f infra/docker-compose.prod.yml ps`
+   - `docker compose -f infra/docker-compose.prod.yml logs -f backend`
+   - `docker compose -f infra/docker-compose.prod.yml logs -f web`
+5. Stop:
+   - `docker compose -f infra/docker-compose.prod.yml down`
+
 ## Beginner Troubleshooting
 
 1. `uvicorn` not recognized in PowerShell:
@@ -56,6 +72,10 @@ Recommended validated paths (verified on 2026-02-16):
    - Then check:
    - `GET /api/v1/ipo/pipeline`
    - Expected: large dataset (current reference about 2,300 rows), demo row `alpha-tech` absent.
+4. Deployed API returns old routes or unexpected 404:
+   - Check local host process conflict on `8000`:
+   - `Get-NetTCPConnection -LocalPort 8000 -State Listen`
+   - Stop local `uvicorn` and re-test container API.
 
 ## Health Checks
 
