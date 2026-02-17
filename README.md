@@ -43,6 +43,7 @@ Modular monolith for Korean IPO and company snapshot data using DART, KIND, and 
 - `GET /api/v1/quality/issues`
 - `GET /api/v1/quality/summary`
 - `GET /api/v1/quality/overview`
+- `GET /api/v1/quality/rules`
 - `GET /api/v1/quality/entity/{entity_key}`
 
 ## Product UI Scope
@@ -56,6 +57,7 @@ Modular monolith for Korean IPO and company snapshot data using DART, KIND, and 
 ## Data Quality Gate
 
 - Source rule packs: DART / KIND / KRX / Cross-source.
+- Rule dictionary endpoint: `/api/v1/quality/rules` (human-readable meaning + operator action)
 - Gate behavior:
   - `PASS`: publish snapshot
   - `WARN`: publish + record issue

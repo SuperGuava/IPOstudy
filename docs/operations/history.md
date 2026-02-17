@@ -1,6 +1,6 @@
 # Execution History and Major Notes
 
-Updated: 2026-02-17 09:20 (+09:00)
+Updated: 2026-02-17 10:05 (+09:00)
 
 ## 1) Repository / Integration History
 
@@ -536,3 +536,25 @@ Verification:
 3. `GET /api/v1/ipo/pipeline` ->
    - `total=2301`
    - demo row (`alpha-tech`) absent
+
+## 25) Quality Rule Catalog for Non-experts (2026-02-17)
+
+Applied:
+
+1. Added quality rule dictionary module:
+   - `backend/app/quality/catalog.py`
+2. Added API endpoint:
+   - `GET /api/v1/quality/rules`
+   - optional filters: `source`, `severity`
+3. Expanded quality page UX:
+   - issue feed now shows `rule_code` + human-readable title
+   - top rule panel now shows title next to code
+   - added `Rule Guide (Beginner)` panel with plain-language description and operator action
+4. Updated operations docs:
+   - `README.md`, `guava_guide.md`, `docs/operations/runbook.md`, `docs/operations/session-handoff.md`
+
+Verification:
+
+1. `cd backend && python -m pytest -q tests/api/test_quality_api.py` -> pass
+2. `cd backend && python -m pytest -q` -> pass
+3. `cd web && npm run build:stable` -> pass

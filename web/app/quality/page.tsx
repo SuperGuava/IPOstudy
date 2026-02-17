@@ -1,6 +1,6 @@
 import { AppShell } from "@/components/app-shell";
 import { Card } from "@/components/ui/card";
-import { getQualityIssues, getQualityOverview, getQualitySummary } from "@/lib/api";
+import { getQualityIssues, getQualityOverview, getQualityRules, getQualitySummary } from "@/lib/api";
 
 function textParam(value: string | string[] | undefined): string {
   return typeof value === "string" ? value : "";
@@ -17,7 +17,7 @@ export default async function QualityPage({
   const fromDate = textParam(params.from);
   const toDate = textParam(params.to);
 
-  const [issueData, summaryData, overview] = await Promise.all([
+  const [issueData, summaryData, overview, ruleCatalog] = await Promise.all([
     getQualityIssues({
       source: source || undefined,
       severity: severity || undefined,
@@ -34,9 +34,11 @@ export default async function QualityPage({
       fromDate: fromDate || undefined,
       toDate: toDate || undefined,
     }).catch(() => ({ total_issues: 0, severity_counts: {}, source_counts: {}, top_rules: [] })),
+    getQualityRules().catch(() => ({ items: [], total: 0 })),
   ]);
 
   const latest = summaryData.items[0];
+  const ruleMap = new Map(ruleCatalog.items.map((row) => [row.rule_code, row]));
 
   return (
     <AppShell title="Quality" subtitle="Source issue and summary analytics surface">
@@ -127,7 +129,12 @@ export default async function QualityPage({
                   <tr key={issue.id} className="border-b border-ag-line/70">
                     <td className="px-2 py-1.5 font-mono text-xs">{issue.id}</td>
                     <td className="px-2 py-1.5">{issue.source}</td>
-                    <td className="px-2 py-1.5 text-ag-mute">{issue.rule_code}</td>
+                    <td className="px-2 py-1.5 text-ag-mute">
+                      <div>{issue.rule_code}</div>
+                      <div className="text-[11px]">
+                        {ruleMap.get(issue.rule_code)?.title ?? "Unknown rule"}
+                      </div>
+                    </td>
                     <td className="px-2 py-1.5">{issue.severity}</td>
                     <td className="px-2 py-1.5 font-mono text-xs text-ag-mute">{issue.batch_id ?? "-"}</td>
                   </tr>
@@ -179,11 +186,32 @@ export default async function QualityPage({
                 key={row.rule_code}
                 className="flex items-center justify-between rounded border border-ag-line bg-ag-panel/70 px-2 py-1.5"
               >
-                <span>{row.rule_code}</span>
+                <span>
+                  {row.rule_code}
+                  <span className="ml-2 text-ag-mute">{ruleMap.get(row.rule_code)?.title ?? ""}</span>
+                </span>
                 <span className="font-mono text-ag-mute">{row.count}</span>
               </li>
             ))}
             {overview.top_rules.length === 0 ? <li className="text-ag-mute">No rule aggregates yet.</li> : null}
+          </ul>
+        </Card>
+      </div>
+
+      <div className="mt-4">
+        <Card>
+          <div className="mb-2 text-[11px] uppercase tracking-wide text-ag-mute">Rule Guide (Beginner)</div>
+          <ul className="space-y-2 text-xs">
+            {ruleCatalog.items.slice(0, 8).map((rule) => (
+              <li key={rule.rule_code} className="rounded border border-ag-line bg-ag-panel/70 p-2">
+                <div className="font-semibold">
+                  {rule.rule_code} [{rule.severity}]
+                </div>
+                <div className="mt-1 text-ag-mute">{rule.description}</div>
+                <div className="mt-1">Action: {rule.operator_action}</div>
+              </li>
+            ))}
+            {ruleCatalog.items.length === 0 ? <li className="text-ag-mute">No rule metadata yet.</li> : null}
           </ul>
         </Card>
       </div>

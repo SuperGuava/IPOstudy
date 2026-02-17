@@ -5,9 +5,9 @@ test("navigate ipo board to detail", async ({ page }) => {
   await expect(page.getByTestId("app-shell")).toBeVisible();
   await expect(page.getByRole("navigation", { name: "Primary" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "IPO Pipeline" })).toBeVisible();
-  await page.getByRole("link", { name: "alpha-tech" }).click();
+  await page.locator("a[href^='/ipo/']").first().click();
   await expect(page).toHaveURL(/\/ipo\/.+/);
-  await expect(page.getByRole("heading", { name: "IPO Detail" })).toBeVisible();
+  await expect(page.getByText("Entity detail", { exact: true })).toBeVisible();
 });
 
 test("dashboard and quality render live metric panels", async ({ page }) => {

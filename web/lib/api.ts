@@ -46,6 +46,15 @@ export type QualityOverview = {
   top_rules: Array<{ rule_code: string; count: number }>;
 };
 
+export type QualityRuleMeta = {
+  rule_code: string;
+  source: string;
+  severity: string;
+  title: string;
+  description: string;
+  operator_action: string;
+};
+
 type IpoPipelineResponse = {
   items: IpoItem[];
   total: number;
@@ -63,6 +72,11 @@ type QualitySummaryResponse = {
 };
 
 type QualityOverviewResponse = QualityOverview;
+
+type QualityRuleCatalogResponse = {
+  items: QualityRuleMeta[];
+  total: number;
+};
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000/api/v1";
 
@@ -168,4 +182,19 @@ export async function getQualityOverview(options?: {
   }
   const suffix = query.size > 0 ? `?${query.toString()}` : "";
   return getJson<QualityOverviewResponse>(`/quality/overview${suffix}`);
+}
+
+export async function getQualityRules(options?: {
+  source?: string;
+  severity?: string;
+}): Promise<QualityRuleCatalogResponse> {
+  const query = new URLSearchParams();
+  if (options?.source) {
+    query.set("source", options.source);
+  }
+  if (options?.severity) {
+    query.set("severity", options.severity);
+  }
+  const suffix = query.size > 0 ? `?${query.toString()}` : "";
+  return getJson<QualityRuleCatalogResponse>(`/quality/rules${suffix}`);
 }

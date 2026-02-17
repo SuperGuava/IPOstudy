@@ -5,6 +5,7 @@ from sqlalchemy import Select, and_, select
 
 from app.db.session import SessionLocal
 from app.models.quality import DataQualityIssue, DataQualitySummaryDaily
+from app.quality.catalog import RULE_CATALOG
 
 router = APIRouter(prefix="/quality", tags=["quality"])
 
@@ -121,6 +122,19 @@ def get_quality_entity_history(entity_key: str) -> dict:
         for row in rows
     ]
     return {"entity_key": entity_key, "items": items, "total": len(items)}
+
+
+@router.get("/rules")
+def get_quality_rule_catalog(
+    source: str | None = None,
+    severity: str | None = None,
+) -> dict:
+    rows = RULE_CATALOG
+    if source:
+        rows = [row for row in rows if row["source"] == source]
+    if severity:
+        rows = [row for row in rows if row["severity"] == severity]
+    return {"items": rows, "total": len(rows)}
 
 
 @router.get("/overview")

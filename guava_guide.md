@@ -13,6 +13,7 @@ Anti-Gravity는 제품형 운영 단계이며, 최근 이슈였던 "IPO 회사�
   - FastAPI + SQLAlchemy + Alembic
   - DB 기반 IPO pipeline API
   - quality API (`/quality/issues`, `/quality/summary`, `/quality/overview`, `/quality/entity/{entity_key}`)
+  - quality 규칙 사전 API (`/quality/rules`)로 rule_code 의미/대응 가이드 제공
   - export API (`/export/ipo.xlsx`, `/export/company/{corp_code}.xlsx`)
 - 데이터 파이프라인
   - DART + KIND + KRX OpenAPI 수집
@@ -21,6 +22,7 @@ Anti-Gravity는 제품형 운영 단계이며, 최근 이슈였던 "IPO 회사�
 - 프론트
   - Dashboard / IPO Pipeline / Company Snapshot / Quality / Export
   - API 실연동 기반 KPI/그리드/필터/디테일 뷰
+  - Quality 화면에 Rule Guide(비전문가용 설명 + 조치 가이드) 노출
   - e2e 테스트 유지
 
 ## 3) 최근 핵심 수정: 회사가 1개만 보이던 원인

@@ -37,3 +37,24 @@ def test_quality_overview_api_returns_aggregates() -> None:
     assert "total_issues" in body
     assert "severity_counts" in body
     assert "source_counts" in body
+
+
+def test_quality_rules_api_returns_catalog() -> None:
+    client = TestClient(app)
+    response = client.get("/api/v1/quality/rules")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["total"] > 0
+    rule_codes = {row["rule_code"] for row in body["items"]}
+    assert "KRX_RESPONSE_SCHEMA" in rule_codes
+
+
+def test_quality_rules_api_filters_by_source_and_severity() -> None:
+    client = TestClient(app)
+    response = client.get("/api/v1/quality/rules", params={"source": "KRX", "severity": "FAIL"})
+    assert response.status_code == 200
+    body = response.json()
+    assert body["total"] > 0
+    for row in body["items"]:
+        assert row["source"] == "KRX"
+        assert row["severity"] == "FAIL"

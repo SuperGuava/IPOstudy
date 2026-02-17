@@ -67,12 +67,16 @@ Recommended validated paths (verified on 2026-02-16):
   - `GET /api/v1/company/snapshot?corp_code=00126380`
   - `GET /api/v1/quality/summary`
   - `GET /api/v1/quality/overview`
+  - `GET /api/v1/quality/rules`
   - `GET /api/v1/quality/issues`
 
 ## Data Quality Operations
 
 - Issue query:
   - `GET /api/v1/quality/issues?source=DART&severity=FAIL`
+- Rule dictionary query:
+  - `GET /api/v1/quality/rules`
+  - `GET /api/v1/quality/rules?source=KRX&severity=FAIL`
 - Entity history:
   - `GET /api/v1/quality/entity/00126380`
 - Summary trend:

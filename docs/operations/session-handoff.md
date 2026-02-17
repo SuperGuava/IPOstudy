@@ -31,7 +31,8 @@ Allow any new session to resume development without prior chat context.
 4. `GET /api/v1/quality/issues`
 5. `GET /api/v1/quality/summary`
 6. `GET /api/v1/quality/overview`
-7. `cd backend && python scripts/krx_openapi_probe.py`
+7. `GET /api/v1/quality/rules`
+8. `cd backend && python scripts/krx_openapi_probe.py`
 
 ## KRX Current Status
 
