@@ -2,7 +2,14 @@ import Link from "next/link";
 
 import { AppShell } from "@/components/app-shell";
 import { Card } from "@/components/ui/card";
-import { getInsightCompanies, getInsightCompany, getInsightCompare, getInsightReport, getInsightTemplates } from "@/lib/api";
+import {
+  getInsightCompanies,
+  getInsightCompany,
+  getInsightCompare,
+  getInsightOverview,
+  getInsightReport,
+  getInsightTemplates,
+} from "@/lib/api";
 
 function textParam(value: string | string[] | undefined): string {
   return typeof value === "string" ? value : "";
@@ -45,7 +52,7 @@ export default async function ExplorerPage({
     .filter(Boolean)
     .slice(0, 3);
 
-  const [companies, templates] = await Promise.all([
+  const [companies, templates, overview] = await Promise.all([
     getInsightCompanies({
       query: query || undefined,
       stage: stage || undefined,
@@ -53,9 +60,17 @@ export default async function ExplorerPage({
       limit: 40,
     }).catch(() => ({ items: [], total: 0 })),
     getInsightTemplates().catch(() => ({ items: [], total: 0 })),
+    getInsightOverview().catch(() => ({
+      total_companies: 0,
+      stage_counts: {},
+      risk_counts: { low: 0, medium: 0, high: 0 },
+      top_lead_managers: [],
+    })),
   ]);
 
   const selectedKey = selectedKeyFromQuery || companies.items[0]?.company_key || "";
+  const stageCounts = overview.stage_counts as Record<string, number>;
+  const riskCounts = overview.risk_counts as Record<string, number>;
   const [detail, compareData, report] = await Promise.all([
     selectedKey ? getInsightCompany(selectedKey).catch(() => null) : Promise.resolve(null),
     compareKeys.length >= 2 ? getInsightCompare(compareKeys).catch(() => null) : Promise.resolve(null),
@@ -64,6 +79,25 @@ export default async function ExplorerPage({
 
   return (
     <AppShell title="Company Explorer" subtitle="Beginner-first company discovery, compare, and guided analysis">
+      <div className="mb-4 grid gap-4 md:grid-cols-4">
+        <Card>
+          <div className="text-[11px] uppercase tracking-wide text-ag-mute">Total Companies</div>
+          <div className="mt-2 text-2xl font-semibold">{overview.total_companies}</div>
+        </Card>
+        <Card>
+          <div className="text-[11px] uppercase tracking-wide text-ag-mute">Listed</div>
+          <div className="mt-2 text-2xl font-semibold">{stageCounts["listed"] ?? 0}</div>
+        </Card>
+        <Card>
+          <div className="text-[11px] uppercase tracking-wide text-ag-mute">Prelisting</div>
+          <div className="mt-2 text-2xl font-semibold">{stageCounts["prelisting"] ?? 0}</div>
+        </Card>
+        <Card>
+          <div className="text-[11px] uppercase tracking-wide text-ag-mute">High Risk</div>
+          <div className="mt-2 text-2xl font-semibold">{riskCounts["high"] ?? 0}</div>
+        </Card>
+      </div>
+
       <Card className="mb-4">
         <form className="grid gap-3 md:grid-cols-[1fr_170px_150px_190px_auto]">
           <label className="block">
@@ -275,9 +309,21 @@ export default async function ExplorerPage({
               {templates.items.length === 0 ? <li className="text-ag-mute">No templates configured.</li> : null}
             </ul>
           </Card>
+
+          <Card>
+            <div className="mb-2 text-[11px] uppercase tracking-wide text-ag-mute">Top Lead Managers</div>
+            <ul className="space-y-2 text-xs">
+              {overview.top_lead_managers.map((row) => (
+                <li key={row.lead_manager} className="flex items-center justify-between rounded border border-ag-line bg-ag-panel/70 px-2 py-1.5">
+                  <span>{row.lead_manager}</span>
+                  <span className="font-mono text-ag-mute">{row.count}</span>
+                </li>
+              ))}
+              {overview.top_lead_managers.length === 0 ? <li className="text-ag-mute">No lead manager data.</li> : null}
+            </ul>
+          </Card>
         </div>
       </div>
     </AppShell>
   );
 }
-

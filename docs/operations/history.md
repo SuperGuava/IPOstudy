@@ -1,6 +1,6 @@
 # Execution History and Major Notes
 
-Updated: 2026-02-17 11:55 (+09:00)
+Updated: 2026-02-17 12:20 (+09:00)
 
 ## 1) Repository / Integration History
 
@@ -615,3 +615,24 @@ Verification:
    - `GET /api/v1/insights/company?company_key=name:3R` -> `200`
    - `GET /api/v1/insights/compare?company_key=name:3R&company_key=name:3S` -> `200`
    - `GET /api/v1/insights/report?company_key=name:3R&template_id=foundation-check` -> `200`
+
+## 28) Explorer Overview KPI Layer (2026-02-17)
+
+Applied:
+
+1. Added insights overview API:
+   - `GET /api/v1/insights/overview`
+   - aggregates: `total_companies`, `stage_counts`, `risk_counts`, `top_lead_managers`
+2. Added backend test coverage:
+   - `test_insight_overview_returns_aggregates`
+3. Upgraded Explorer page:
+   - top KPI cards (`Total Companies`, `Listed`, `Prelisting`, `High Risk`)
+   - `Top Lead Managers` panel
+4. Updated operations and guide docs with new endpoint.
+
+Verification:
+
+1. `cd backend && python -m pytest -q tests/api/test_insights_api.py` -> `7 passed`
+2. `cd backend && python -m pytest -q` -> `76 passed`
+3. `cd web && npm run build:stable` -> pass
+4. `cd web && npx playwright test` -> `3 passed`

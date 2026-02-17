@@ -41,6 +41,7 @@ Modular monolith for Korean IPO and company snapshot data using DART, KIND, and 
 - `GET /api/v1/insights/companies?query=<name_or_code>&limit=30`
 - `GET /api/v1/insights/company?company_key=<company_key>`
 - `GET /api/v1/insights/templates`
+- `GET /api/v1/insights/overview`
 - `GET /api/v1/insights/compare?company_key=<k1>&company_key=<k2>`
 - `GET /api/v1/insights/report?company_key=<k1>&template_id=foundation-check`
 - `GET /api/v1/export/ipo.xlsx`

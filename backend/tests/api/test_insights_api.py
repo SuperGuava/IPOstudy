@@ -39,6 +39,17 @@ def test_insight_templates_returns_default_templates() -> None:
     assert "foundation-check" in ids
 
 
+def test_insight_overview_returns_aggregates() -> None:
+    client = TestClient(app)
+    response = client.get("/api/v1/insights/overview")
+    assert response.status_code == 200
+    body = response.json()
+    assert "total_companies" in body
+    assert "stage_counts" in body
+    assert "risk_counts" in body
+    assert "top_lead_managers" in body
+
+
 def test_insight_companies_supports_stage_and_risk_filters() -> None:
     client = TestClient(app)
     baseline = client.get("/api/v1/insights/companies", params={"limit": 5})

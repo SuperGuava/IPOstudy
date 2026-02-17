@@ -32,8 +32,10 @@ test("dashboard and quality render live metric panels", async ({ page }) => {
 test("company explorer renders beginner-friendly analysis surface", async ({ page }) => {
   await page.goto("/explorer");
   await expect(page.getByRole("heading", { name: "Company Explorer" })).toBeVisible();
+  await expect(page.getByText("Total Companies", { exact: true })).toBeVisible();
   await expect(page.getByText("Beginner Summary", { exact: true })).toBeVisible();
   await expect(page.getByText("Analysis Templates", { exact: true })).toBeVisible();
   await expect(page.getByText("Compare Snapshot", { exact: true })).toBeVisible();
+  await expect(page.getByText("Top Lead Managers", { exact: true })).toBeVisible();
   await expect(page.getByText("Company List", { exact: true })).toBeVisible();
 });

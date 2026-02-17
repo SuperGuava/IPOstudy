@@ -58,6 +58,36 @@ def list_analysis_templates() -> list[dict]:
     ]
 
 
+def get_insight_overview(session: Session) -> dict:
+    rows = session.execute(select(IpoPipelineItem)).scalars().all()
+    corp_codes = [row.corp_code for row in rows if row.corp_code]
+    quality_counts = _load_quality_counts_by_corp_code(session, corp_codes)
+
+    stage_counts: dict[str, int] = {}
+    risk_counts = {"low": 0, "medium": 0, "high": 0}
+    lead_manager_counts: dict[str, int] = {}
+
+    for row in rows:
+        stage_counts[row.stage] = stage_counts.get(row.stage, 0) + 1
+        counts = quality_counts.get(row.corp_code or "", {"PASS": 0, "WARN": 0, "FAIL": 0})
+        risk = _risk_label(fail_count=counts["FAIL"], warn_count=counts["WARN"])
+        risk_counts[risk] += 1
+        if row.lead_manager:
+            lead_manager_counts[row.lead_manager] = lead_manager_counts.get(row.lead_manager, 0) + 1
+
+    top_lead_managers = [
+        {"lead_manager": key, "count": value}
+        for key, value in sorted(lead_manager_counts.items(), key=lambda item: item[1], reverse=True)[:5]
+    ]
+
+    return {
+        "total_companies": len(rows),
+        "stage_counts": stage_counts,
+        "risk_counts": risk_counts,
+        "top_lead_managers": top_lead_managers,
+    }
+
+
 def _build_quick_insights(
     *,
     corp_name: str,

@@ -110,6 +110,13 @@ export type InsightReport = {
   report_lines: string[];
 };
 
+export type InsightOverview = {
+  total_companies: number;
+  stage_counts: Record<string, number>;
+  risk_counts: Record<string, number>;
+  top_lead_managers: Array<{ lead_manager: string; count: number }>;
+};
+
 type IpoPipelineResponse = {
   items: IpoItem[];
   total: number;
@@ -145,6 +152,7 @@ type InsightTemplateResponse = {
 
 type InsightCompareResponse = InsightCompare;
 type InsightReportResponse = InsightReport;
+type InsightOverviewResponse = InsightOverview;
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000/api/v1";
 
@@ -310,4 +318,8 @@ export async function getInsightCompare(companyKeys: string[]): Promise<InsightC
 export async function getInsightReport(companyKey: string, templateId: string): Promise<InsightReportResponse> {
   const query = new URLSearchParams({ company_key: companyKey, template_id: templateId });
   return getJson<InsightReportResponse>(`/insights/report?${query.toString()}`);
+}
+
+export async function getInsightOverview(): Promise<InsightOverviewResponse> {
+  return getJson<InsightOverviewResponse>("/insights/overview");
 }

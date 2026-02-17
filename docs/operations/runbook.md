@@ -66,6 +66,7 @@ Recommended validated paths (verified on 2026-02-16):
   - `GET /api/v1/ipo/pipeline?refresh=true&corp_code=00126380`
   - `GET /api/v1/insights/companies?limit=20`
   - `GET /api/v1/insights/companies?stage=listed&risk_label=low&limit=20`
+  - `GET /api/v1/insights/overview`
   - `GET /api/v1/insights/company?company_key=name:3R`
   - `GET /api/v1/insights/templates`
   - `GET /api/v1/insights/compare?company_key=name:3R&company_key=name:3S`

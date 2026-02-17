@@ -30,13 +30,14 @@ Allow any new session to resume development without prior chat context.
 3. `GET /api/v1/ipo/pipeline?refresh=true&corp_code=00126380&bas_dd=20250131`
 4. `GET /api/v1/insights/companies?limit=20`
 5. `GET /api/v1/insights/templates`
-6. `GET /api/v1/insights/compare?company_key=name:3R&company_key=name:3S`
-7. `GET /api/v1/insights/report?company_key=name:3R&template_id=foundation-check`
-8. `GET /api/v1/quality/issues`
-9. `GET /api/v1/quality/summary`
-10. `GET /api/v1/quality/overview`
-11. `GET /api/v1/quality/rules`
-12. `cd backend && python scripts/krx_openapi_probe.py`
+6. `GET /api/v1/insights/overview`
+7. `GET /api/v1/insights/compare?company_key=name:3R&company_key=name:3S`
+8. `GET /api/v1/insights/report?company_key=name:3R&template_id=foundation-check`
+9. `GET /api/v1/quality/issues`
+10. `GET /api/v1/quality/summary`
+11. `GET /api/v1/quality/overview`
+12. `GET /api/v1/quality/rules`
+13. `cd backend && python scripts/krx_openapi_probe.py`
 
 ## KRX Current Status
 
