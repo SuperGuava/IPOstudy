@@ -1,6 +1,6 @@
 ﻿# Guava Guide
 
-Updated: 2026-02-17 (deployment-ready)
+Updated: 2026-02-18 (deployment-ready, verification locked)
 Audience: product owner / 운영 담당 / 다음 세션 개발자
 
 ## 1) 현재 상태 한 줄 요약
@@ -43,7 +43,7 @@ Anti-Gravity는 제품형 운영 단계이며, 최근 이슈였던 "IPO 회사�
 
 검증:
 
-1. `cd backend && python -m pytest -q` -> `67 passed`
+1. `cd backend && python -m pytest -q` -> `80 passed`
 2. `GET /api/v1/ipo/pipeline?refresh=true&corp_code=00126380&bas_dd=20250131` -> `total=2301`, `published=true`
 3. `GET /api/v1/ipo/pipeline` -> `alpha-tech` 미존재
 
@@ -62,7 +62,8 @@ Anti-Gravity는 제품형 운영 단계이며, 최근 이슈였던 "IPO 회사�
 현황 요약:
 
 1. 대부분 카테고리 `OK`
-2. ESG는 `partial` (일부 권한 승인 대기 가능)
+2. ESG는 `partial` (`esg/esg_index_info`, `esg/esg_etp_info` 승인 대기)
+3. 2026-02-17 재검증 기준 strict probe x5 + refresh x5 모두 동일 결과로 안정 재현됨
 
 ## 5) 새 세션 즉시 시작 명령 (비전문가용)
 
@@ -72,6 +73,7 @@ Anti-Gravity는 제품형 운영 단계이며, 최근 이슈였던 "IPO 회사�
    - `cd backend`
    - `python -m alembic upgrade head`
    - `python -m pytest -q`
+   - (PowerShell) `.env` 로드: `Get-Content ..\\.env | %{ if($_ -match '^[A-Za-z_][A-Za-z0-9_]*='){ $k,$v=$_.Split('=',2); [System.Environment]::SetEnvironmentVariable($k,$v,'Process') } }`
    - `python -m uvicorn app.main:app --host 0.0.0.0 --port 8000`
 3. 웹
    - `cd web`
@@ -100,8 +102,14 @@ Anti-Gravity는 제품형 운영 단계이며, 최근 이슈였던 "IPO 회사�
 - 운영 런북: `docs/operations/runbook.md`
 - 실행 이력: `docs/operations/history.md`
 - 세션 인수인계: `docs/operations/session-handoff.md`
+- 검증 기준선 잠금: `docs/operations/verification-lock.md`
 - 제품화 설계: `docs/plans/2026-02-15-antigravity-productization-design.md`
 - 제품화 실행 계획: `docs/plans/2026-02-15-antigravity-productization.md`
+
+## 7-1) 재검증 생략 규칙
+
+1. `docs/operations/verification-lock.md` 조건이 그대로면 probe/refresh 재실행을 생략합니다.
+2. 승인 상태/코드/환경 변경 시에만 재검증합니다.
 
 ## 8) 다음 액션 (우선순위)
 

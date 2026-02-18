@@ -5,6 +5,7 @@ from alembic import context
 from sqlalchemy import engine_from_config, pool
 
 from app.db.base import Base
+from app.db.url import normalize_database_url
 from app import models  # noqa: F401
 
 config = context.config
@@ -15,7 +16,10 @@ if config.config_file_name is not None:
 target_metadata = Base.metadata
 
 if os.getenv("DATABASE_URL"):
-    config.set_main_option("sqlalchemy.url", os.getenv("DATABASE_URL", ""))
+    config.set_main_option(
+        "sqlalchemy.url",
+        normalize_database_url(os.getenv("DATABASE_URL"), default="sqlite:///./anti_gravity.db"),
+    )
 
 
 def run_migrations_offline() -> None:

@@ -1,0 +1,52 @@
+services:
+  - type: web
+    name: anti-gravity-api
+    env: docker
+    dockerContext: ./backend
+    dockerfilePath: ./backend/Dockerfile
+    plan: starter
+    autoDeploy: true
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: anti-gravity-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: anti-gravity-redis
+          property: connectionString
+      - key: DART_API_KEY
+        sync: false
+      - key: KRX_API_KEY
+        sync: false
+      - key: KRX_API_INDEX_PATH
+        value: idx/krx_dd_trd,idx/kospi_dd_trd,idx/kosdaq_dd_trd
+      - key: KRX_API_STOCK_PATH
+        value: sto/stk_bydd_trd
+      - key: KRX_API_SECURITIES_PATH
+        value: sto/ksq_bydd_trd,sto/ksq_isu_base_info
+      - key: KRX_API_BOND_PATH
+        value: bon/bnd_bydd_trd
+      - key: KRX_API_DERIVATIVE_PATH
+        value: drv/fut_bydd_trd,drv/opt_bydd_trd
+      - key: KRX_API_GENERAL_PATH
+        value: sto/knx_bydd_trd,sto/knx_isu_base_info
+      - key: KRX_API_ESG_PATH
+        value: esg/sri_bond_info,esg/esg_index_info,esg/esg_etp_info
+
+  - type: redis
+    name: anti-gravity-redis
+    plan: starter
+    ipAllowList: []
+    maxmemoryPolicy: noeviction
+
+databases:
+  - name: anti-gravity-db
+    databaseName: anti_gravity
+    user: anti_gravity
+    plan: starter
+

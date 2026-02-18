@@ -47,6 +47,8 @@ Modular monolith for Korean IPO and company snapshot data using DART, KIND, and 
 
 - Runbook: `docs/operations/runbook.md`
 - Deployment guide: `docs/operations/deployment.md`
+- Public deploy (Vercel + Render): `docs/operations/vercel-render-deploy.md`
+- Verification lock: `docs/operations/verification-lock.md`
 - Execution history: `docs/operations/history.md`
 - Session handoff: `docs/operations/session-handoff.md`
 - Owner summary: `guava_guide.md`

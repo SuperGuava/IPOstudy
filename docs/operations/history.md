@@ -1,13 +1,13 @@
 # Execution History and Major Notes
 
-Updated: 2026-02-17 14:20 (+09:00)
+Updated: 2026-02-18 09:45 (+09:00)
 
 ## 1) Repository / Integration History
 
 - Main repository: `https://github.com/SuperGuava/IPOstudy.git`
 - Default branch: `main`
 - Merged PR: `#1` (feature work integrated into `main`)
-- Current `main` head: `b378f94` (`feat: add explorer overview KPIs and extended insights APIs`)
+- Current `main` head: `e19022c` (`security: redact db password example from operations history`)
 
 Recent milestone commits:
 
@@ -708,3 +708,73 @@ Verification:
 1. `cd backend && python -m pytest -q tests/api/test_insights_api.py` -> `8 passed`
 2. `cd backend && python -m pytest -q` -> `77 passed`
 3. `cd web && npx playwright test` -> `3 passed`
+
+## 31) Resume Verification Pass (2026-02-17)
+
+Observed:
+
+1. Session resumed with uncommitted deploy/readme updates and a pending "ESG approval re-check + repeat verification" task from handoff.
+2. Local infra bootstrap required explicit `POSTGRES_PASSWORD` at compose runtime in this shell.
+3. `web` build showed `spawn EPERM` in restricted execution mode, but this was environmental (permission scope), not app code regression.
+
+Applied:
+
+1. Rebootstrapped local infra (`postgres`, `redis`) and re-ran pipeline checks.
+2. Re-verified backend test suite and KRX strict probes.
+3. Re-ran live refresh loop (`run_pipeline_once.py`) five times with fixed inputs.
+4. Updated handoff references to latest verified numbers and current pending actions.
+
+Verification:
+
+1. `cd backend && python -m pytest -q` -> `80 passed`
+2. `cd backend && python scripts/krx_openapi_probe.py --repeat 5 --bas-dd 20250131 --strict-categories stock,esg` ->
+   - all iterations: `stock=OK`
+   - all iterations: `esg` remained `partial` (`esg_index_info`, `esg_etp_info` auth pending)
+3. `cd backend && python scripts/run_pipeline_once.py --corp-code 00126380 --bas-dd 20250131` repeated 5 times ->
+   - all runs `published=True`
+   - all runs `kind_rows=2301`, `dart_rows=20`, `krx_status=ok`
+4. `cd web && npm run build:stable` -> pass in full-permission shell (restricted shell may show `spawn EPERM`)
+
+## 32) API Refresh Verification Alignment (2026-02-17)
+
+Observed:
+
+1. `:8000` API refresh returned `source_status.*=missing_key` while script probes showed 정상 수집.
+2. Root cause was an orphan `infra-backend-1` container running with empty `DART_API_KEY` / `KRX_API_KEY`.
+
+Applied:
+
+1. Re-validated KRX strict probe via script (repo root `.env` load path).
+2. Started local backend (`uvicorn`) with `.env` loaded on `127.0.0.1:8010`.
+3. Re-ran refresh API loop (`x5`) against the local backend process.
+4. Updated handoff notes to distinguish stale container responses from true refresh behavior.
+
+Verification:
+
+1. `python scripts/krx_openapi_probe.py --repeat 5 --bas-dd 20250131 --strict-categories stock,esg` ->
+   - `stock`: all `OK`
+   - `esg`: `partial` (`esg/sri_bond_info=OK`, `esg/esg_index_info=AUTH ERROR`, `esg/esg_etp_info=AUTH ERROR`)
+2. `GET /api/v1/ipo/pipeline?refresh=true&corp_code=00126380&bas_dd=20250131` (local backend `:8010`) repeated 5 times ->
+   - all runs `published=True`
+   - all runs `kind_rows=2301`, `dart_rows=100`, `krx_rows=12`
+   - all runs `source_status.esg=partial:ok=2262,auth=2,denied=0,schema=0,error=0`
+
+## 33) Verification Lock Established (2026-02-18)
+
+Applied:
+
+1. Added persistent baseline lock document:
+   - `docs/operations/verification-lock.md`
+2. Recorded:
+   - strict probe `x5` evidence
+   - refresh loop `x5` evidence
+   - lock-time git head (`e19022c`)
+   - no-rerun and rerun-trigger conditions
+3. Linked lock policy from:
+   - `docs/operations/session-handoff.md`
+   - `docs/operations/runbook.md`
+   - `guava_guide.md`
+
+Intent:
+
+1. Future sessions should not re-run full verification loops unless lock conditions changed.

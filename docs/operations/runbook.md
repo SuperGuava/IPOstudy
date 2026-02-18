@@ -1,6 +1,12 @@
 # Operations Runbook
 
-See also: `docs/operations/deployment.md`, `docs/operations/session-handoff.md`, `docs/operations/history.md`, `guava_guide.md`
+See also: `docs/operations/deployment.md`, `docs/operations/vercel-render-deploy.md`, `docs/operations/session-handoff.md`, `docs/operations/history.md`, `docs/operations/verification-lock.md`, `guava_guide.md`
+
+## Verification Baseline Lock
+
+- Baseline document: `docs/operations/verification-lock.md`
+- If lock conditions are unchanged, skip repeated `x5` probe/refresh reruns.
+- Execute reruns only when lock's "When Rerun Is Required" applies.
 
 ## Environment Variables
 
@@ -76,6 +82,9 @@ Recommended validated paths (verified on 2026-02-16):
    - Check local host process conflict on `8000`:
    - `Get-NetTCPConnection -LocalPort 8000 -State Listen`
    - Stop local `uvicorn` and re-test container API.
+5. Refresh response shows `missing_key` for multiple sources:
+   - You may be hitting a stale/orphan backend container with empty env vars.
+   - Check container env (`DART_API_KEY`, `KRX_API_KEY`) or run local backend with `.env` loaded and verify again.
 
 ## Health Checks
 
